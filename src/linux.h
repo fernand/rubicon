@@ -60,6 +60,4 @@ void screenshot(ScreenshotInfo info, uint8_t *buffer)
             buffer[(x + info.width * y) * 3 + 1] = green;
             buffer[(x + info.width * y) * 3 + 2] = blue;
         }
-    stbi_write_png("debug_image.png", info.width, info.height, 3, buffer, (int)(info.width * 3));
-    free(buffer);
 }
