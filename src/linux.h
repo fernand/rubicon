@@ -7,9 +7,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
 typedef struct ScreenshotInfo
 {
     Display *display;

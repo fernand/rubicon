@@ -11,7 +11,7 @@ int main()
     size_t y_stride = sc_info.width * 3;
     uint8_t *buffer = malloc(sc_info.height * y_stride);
     GameConfig config = {0};
-    create_game_config("rubicon_4k.png", &config);
+    create_game_config("rubicon_4k_half_screen.png", &config);
     Cell cell_0[NUM_CELLS];
     Cell cell_1[NUM_CELLS];
     Board main_board = Board_stack_allocate_board(cell_0, cell_1);

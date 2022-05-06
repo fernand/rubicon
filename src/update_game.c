@@ -3,35 +3,25 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-// #define DEBUG_IMG
+//#define DEBUG_IMG
 #ifdef DEBUG_IMG
 #include <stdlib.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "third_party/stb_image_write.h"
+#include "stb_image_write.h"
 #endif
 
 #include "board.h"
 
 #define PI 3.14159f
 
-#define FOUR_K
-#ifndef FOUR_K
-#define LEFT_X 456    // The center of the left-most cell
-#define RIGHT_X 1441  // The centor of the right-most cell
-#define WIDTH 986     // 1441 - 456 + 1 The width of the board from center to center of extreme cells
-#define TOP_Y 137     // The center of the top-most cell
-#define BOTTOM_Y 1171 // The center of the bottom-most cell
-#define HEIGHT 1035   // 1171 - 137 + 1 The height of the board from center to centor of extreme cells
-#define DST 49.25f    // The horizontal and vertical distance between two cell centers
-#else
-#define LEFT_X 995
-#define RIGHT_X 2812
-#define WIDTH 1818
-#define TOP_Y 198
-#define BOTTOM_Y 2105
-#define HEIGHT 1908
-#define DST 90.75f
-#endif
+// Assumes a window layout on a 4k screen similar to rubicon_4k_half_screen.png
+#define LEFT_X 2044   // The center of the left-most cell
+#define RIGHT_X 3713  // The centor of the right-most cell
+#define WIDTH 1670    // 1441 - 456 + 1 The width of the board from center to center of extreme cells
+#define TOP_Y 306     // The center of the top-most cell
+#define BOTTOM_Y 2062 // The center of the bottom-most cell
+#define HEIGHT 1757   // 1171 - 137 + 1 The height of the board from center to centor of extreme cells
+#define DST 83.5f     // The horizontal and vertical distance between two cell centers
 
 void create_game_config(char *screenshot_path, GameConfig *config)
 {

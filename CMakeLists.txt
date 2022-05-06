@@ -14,5 +14,5 @@ target_include_directories(game PUBLIC third_party)
 target_include_directories(game INTERFACE src)
 
 add_executable(rubicon src/linux_main.c src/linux.h)
-target_link_libraries(rubicon PRIVATE X11 m)
 target_link_libraries(rubicon PRIVATE game)
+target_link_libraries(rubicon PRIVATE X11 m)
