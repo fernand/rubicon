@@ -9,14 +9,6 @@
 
 #define IS_CONNECTION(connections, j) ((connections & 1 << j) != 0)
 
-uint32_t k_fnv_prime = 0x01000193; //   16777619
-uint32_t k_fnv_seed = 0x811C9DC5;  // 2166136261
-
-static inline uint32_t fnv1a(uint8_t b, uint32_t hash)
-{
-    return (b ^ hash) * k_fnv_prime;
-}
-
 static inline uint8_t incr_round(uint8_t new_player_idx, uint8_t round)
 {
     if (new_player_idx == 1)
@@ -33,19 +25,6 @@ static inline uint8_t incr_player(uint8_t player_idx)
         return 0;
     else
         return 1;
-}
-
-inline bool Cell_isempty(Cell cell)
-{
-    return cell.depth == 0;
-}
-
-inline uint8_t num_virt_cells_for_depth(uint8_t depth)
-{
-    if (depth <= 11)
-        return 2 * depth - 1;
-    else
-        return 21 - 2 * (depth - 12);
 }
 
 static inline uint8_t num_virt_cells_to_top_neigbor(uint8_t depth)
@@ -109,11 +88,6 @@ static uint32_t Cells_hash(Cells *cells, uint32_t hash)
     return hash;
 }
 
-inline bool Board_isempty(Board *board)
-{
-    return board->round_to_play == 0;
-}
-
 Board Board_stack_allocate_board(Cell *cell_0, Cell *cell_1)
 {
     Cells cells_0 = (Cells){.size = 0, .data = cell_0};
@@ -140,7 +114,7 @@ bool Board_cmp(Board *b1, Board *b2)
 
 uint32_t Board_hash(Board *board)
 {
-    uint32_t hash = k_fnv_seed;
+    uint32_t hash = FNV_SEED;
     hash = Cells_hash(&board->player_cells[0], hash);
     hash = Cells_hash(&board->player_cells[1], hash);
     hash = fnv1a(board->round_to_play, hash);

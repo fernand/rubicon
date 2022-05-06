@@ -41,6 +41,11 @@ typedef struct NodeMap
     NodeMapEntry *entries;
 } NodeMap;
 
+static inline bool NodeMapEntry_isempty(NodeMapEntry entry)
+{
+    return Board_isempty(&entry.board);
+}
+
 float Node_value(Node *node);
 void Node_add_parent(Node *node, Board board);
 NodeMap NodeMap_init();

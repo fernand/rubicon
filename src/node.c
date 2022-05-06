@@ -49,11 +49,6 @@ Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
     return (Parents){.size = 0, .data = parents};
 }
 
-inline bool NodeMapEntry_isempty(NodeMapEntry entry)
-{
-    return Board_isempty(&entry.board);
-}
-
 NodeMap NodeMap_init()
 {
     size_t default_capacity = 1 << 20;

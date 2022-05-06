@@ -69,11 +69,34 @@ typedef struct GameOutcome
     bool draw;
 } GameOutcome;
 
-inline uint8_t num_virt_cells_for_depth(uint8_t depth);
+#define FNV_PRIME 16777619UL
+#define FNV_SEED 2166136261UL
+
+static inline uint32_t fnv1a(uint8_t b, uint32_t hash)
+{
+    return (b ^ hash) * FNV_PRIME;
+}
+
+static inline bool Cell_isempty(Cell cell)
+{
+    return cell.depth == 0;
+}
+
+static inline uint8_t num_virt_cells_for_depth(uint8_t depth)
+{
+    if (depth <= 11)
+        return 2 * depth - 1;
+    else
+        return 21 - 2 * (depth - 12);
+}
+
+static inline bool Board_isempty(Board *board)
+{
+    return board->round_to_play == 0;
+}
+
 bool Cells_isin(Cells cells, Cell cell);
 void Cells_append(Cells *cells, Cell cell);
-inline bool Cell_isempty(Cell cell);
-inline bool Board_isempty(Board *board);
 bool Board_cmp(Board *b1, Board *b2);
 uint32_t Board_hash(Board *board);
 BoardCache BoardCache_init();
