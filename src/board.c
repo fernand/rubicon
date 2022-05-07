@@ -50,6 +50,8 @@ static inline uint8_t num_virt_cells_to_top_neigbor(uint8_t depth)
         uint8_t num_virt_cells_for_depth = 2 * depth - 1;
         return num_virt_cells_for_depth - 1;
     }
+    else if (depth == 12)
+        return 21;
     else
     {
         uint8_t num_virt_cells_for_depth = 21 - 2 * (depth - 12);
@@ -59,11 +61,13 @@ static inline uint8_t num_virt_cells_to_top_neigbor(uint8_t depth)
 
 static inline uint8_t num_virt_cells_to_btm_neigbor(uint8_t depth)
 {
-    if (depth <= 11)
+    if (depth <= 10)
     {
         uint8_t num_virt_cells_for_depth = 2 * depth - 1;
         return num_virt_cells_for_depth + 1;
     }
+    else if (depth == 11)
+        return 21;
     else
     {
         uint8_t num_virt_cells_for_depth = 21 - 2 * (depth - 12);
