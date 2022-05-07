@@ -330,7 +330,6 @@ Board Board_play_move(BoardCache *boardcache, Board board, Cell cell)
     for (size_t i = 0; i < 2; i++)
     {
         Cells player_cells = board.player_cells[i];
-        new_board.player_cells[i].size = player_cells.size;
         for (size_t j = 0; j < player_cells.size; j++)
             Cells_append(&new_board.player_cells[i], player_cells.data[j]);
     }
