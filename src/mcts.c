@@ -20,6 +20,7 @@ float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board parent_b
     return Node_value(node) + exploration_term;
 }
 
+// Can return an empty cell in case no move can be chosen
 Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board board)
 {
     float max_value = 0.0f;
@@ -27,8 +28,8 @@ Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache,
     Moves moves = get_valid_moves(config, board);
     if (moves.size == 0)
     {
-        printf("choose_move: no valid moves found\n");
-        exit(1);
+        // If you cannot move let's call it a draw
+        return (Cell){};
     }
     for (size_t i = 0; i < moves.size; i++)
     {
@@ -72,10 +73,15 @@ void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Boa
     while (!game_over)
     {
         Cell move = choose_move(config, boardcache, nodecache, current_board);
-        Board next_board = Board_play_move(boardcache, current_board, move);
-        game_history[game_size++] = next_board;
-        current_board = next_board;
-        outcome = evaluate_outcome(config, current_board);
+        if (Cell_isempty(move))
+            outcome.draw = true;
+        else
+        {
+            Board next_board = Board_play_move(boardcache, current_board, move);
+            game_history[game_size++] = next_board;
+            current_board = next_board;
+            outcome = evaluate_outcome(config, current_board);
+        }
         game_over = outcome.player_lost || outcome.player_won || outcome.draw;
     }
     backpropagate(nodecache, game_history, game_size, outcome);

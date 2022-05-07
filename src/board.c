@@ -380,7 +380,8 @@ bool won(GameConfig *config, Cells cells)
 
 GameOutcome evaluate_outcome(GameConfig *config, Board board)
 {
-    size_t num_occupied_cells = board.player_cells[0].size + board.player_cells[1].size;
+    // Two occupied gold cells
+    size_t num_occupied_cells = board.player_cells[0].size + board.player_cells[1].size + 2;
     return (GameOutcome){
         .player_lost = won(config, board.player_cells[0]),
         .player_won = won(config, board.player_cells[1]),
