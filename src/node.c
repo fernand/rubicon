@@ -7,7 +7,7 @@ float Node_value(Node *node)
 {
     if (node->visits == 0)
         return 0.0f;
-    return (float)(node->wins + node->draws) / node->visits;
+    return (float)node->wins / node->visits;
 }
 
 void Node_add_parent(Node *node, Board board)
