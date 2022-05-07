@@ -106,7 +106,6 @@ void create_game_config(char *screenshot_path, GameConfig *config)
     stbi_image_free(img);
 }
 
-// TODO: round_to_play and player_to_play detection.
 void update_player_cells(Board *board, uint8_t *buffer, size_t y_stride)
 {
     size_t x_stride = 3;
@@ -142,5 +141,16 @@ void update_player_cells(Board *board, uint8_t *buffer, size_t y_stride)
             current_x += DST;
         }
         current_y += DST;
+    }
+    // Update player_to_play and round_to_play
+    if (board->player_cells[0].size > board->player_cells[1].size)
+    {
+        board->player_to_play = 1;
+        board->round_to_play = board->player_cells[1].size % 6 + 1;
+    }
+    else
+    {
+        board->player_to_play = 0;
+        board->round_to_play = board->player_cells[0].size % 6 + 1;
     }
 }
