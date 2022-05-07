@@ -66,6 +66,11 @@ NodeMap NodeMap_init()
     };
 }
 
+static inline bool NodeMapEntry_isempty(NodeMapEntry entry)
+{
+    return Board_isempty(&entry.board);
+}
+
 Node *NodeMap_get_or_create(NodeMap *map, Board board)
 {
     if (map->size == map->capacity)

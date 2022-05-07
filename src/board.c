@@ -9,6 +9,14 @@
 
 #define IS_CONNECTION(connections, j) ((connections & 1 << j) != 0)
 
+#define FNV_PRIME 16777619UL
+#define FNV_SEED 2166136261UL
+
+static inline uint32_t fnv1a(uint8_t b, uint32_t hash)
+{
+    return (b ^ hash) * FNV_PRIME;
+}
+
 static inline uint8_t incr_round(uint8_t new_player_idx, uint8_t round)
 {
     if (new_player_idx == 1)
@@ -25,6 +33,14 @@ static inline uint8_t incr_player(uint8_t player_idx)
         return 0;
     else
         return 1;
+}
+
+static inline uint8_t num_virt_cells_for_depth(uint8_t depth)
+{
+    if (depth <= 11)
+        return 2 * depth - 1;
+    else
+        return 21 - 2 * (depth - 12);
 }
 
 static inline uint8_t num_virt_cells_to_top_neigbor(uint8_t depth)
@@ -86,6 +102,16 @@ static uint32_t Cells_hash(Cells *cells, uint32_t hash)
     for (size_t i = 0; i < cells->size; i++)
         hash = fnv1a(cells->data[i].idx, hash);
     return hash;
+}
+
+static inline bool Cell_isempty(Cell cell)
+{
+    return cell.depth == 0;
+}
+
+static inline bool Board_isempty(Board *board)
+{
+    return board->round_to_play == 0;
 }
 
 Board Board_stack_allocate_board(Cell *cell_0, Cell *cell_1)

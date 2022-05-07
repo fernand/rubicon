@@ -40,16 +40,3 @@ typedef struct NodeMap
     size_t capacity;
     NodeMapEntry *entries;
 } NodeMap;
-
-static inline bool NodeMapEntry_isempty(NodeMapEntry entry)
-{
-    return Board_isempty(&entry.board);
-}
-
-float Node_value(Node *node);
-void Node_add_parent(Node *node, Board board);
-NodeMap NodeMap_init();
-void NodeMap_reset(NodeMap *nodecache);
-Node *NodeMap_get_or_create(NodeMap *map, Board board);
-void NodeMap_destroy(NodeMap *map);
-uint32_t num_parent_visits(BoardCache *boardcache, NodeMap *map, Node *node);
