@@ -108,7 +108,7 @@ Node *NodeMap_get_or_create(NodeMap *map, Board *board)
 
 void NodeMap_reset(NodeMap *map)
 {
-    memset(map->entries, 0, map->size * sizeof(NodeMapEntry));
+    memset(map->entries, 0, map->capacity * sizeof(NodeMapEntry));
     map->size = 0;
     ParentsAllocator_reset(&map->allocator);
 }

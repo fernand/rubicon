@@ -308,7 +308,7 @@ Board *BoardCache_get_or_create(BoardCache *boardcache, Board board)
 
 void BoardCache_reset(BoardCache *boardcache)
 {
-    memset(boardcache->boards, 0, boardcache->size * sizeof(Board));
+    memset(boardcache->boards, 0, boardcache->capacity * sizeof(Board));
     boardcache->size = 0;
     CellsAllocator_reset(&boardcache->allocator);
 }
