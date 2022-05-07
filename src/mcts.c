@@ -7,6 +7,7 @@ float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board *parent_
     if (node->visits == 0)
         return INFINITY;
     uint32_t parent_visits = num_parent_visits(boardcache, nodecache, node);
+    // TODO: Not sure why this sometimes happens
     //    if (node->visits > parent_visits)
     //    {
     //        printf("calculate_value: parent visits should be higher than node visits\n");

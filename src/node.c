@@ -1,6 +1,6 @@
 #include "node.h"
 
-#define PARENTS_MAX_SIZE NUM_CELLS / 2
+#define PARENTS_MAX_SIZE NUM_CELLS / 4
 
 float Node_value(Node *node)
 {
@@ -39,7 +39,7 @@ static ParentsAllocator ParentsAllocator_init()
 
 static void ParentsAllocator_reset(ParentsAllocator allocator)
 {
-    memset(allocator.arr, 0, allocator.size * PARENTS_MAX_SIZE * sizeof(Board));
+    memset(allocator.arr, 0, allocator.size * PARENTS_MAX_SIZE * sizeof(size_t));
 }
 
 static void ParentsAllocator_destroy(ParentsAllocator allocator)
