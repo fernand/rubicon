@@ -1,8 +1,10 @@
 #include "stdio.h"
 
+#include "board.c"
 #include "update_game.c"
+#include "node.c"
 #include "mcts.c"
-#include "linux.h"
+#include "linux.c"
 
 int main()
 {
