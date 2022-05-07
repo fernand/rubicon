@@ -36,11 +36,9 @@ ScreenshotInfo get_screenshot_info()
     return (ScreenshotInfo){.display = display, .root = root, .width = gwa.width, .height = gwa.height};
 }
 
-// void screenshot(uint8_t *buffer)
 void screenshot(ScreenshotInfo info, uint8_t *buffer)
 {
     XImage *image = XGetImage(info.display, info.root, 0, 0, info.width, info.height, AllPlanes, ZPixmap);
-
     unsigned long red_mask = image->red_mask;
     unsigned long green_mask = image->green_mask;
     unsigned long blue_mask = image->blue_mask;
@@ -56,4 +54,5 @@ void screenshot(ScreenshotInfo info, uint8_t *buffer)
             buffer[(x + info.width * y) * 3 + 1] = green;
             buffer[(x + info.width * y) * 3 + 2] = blue;
         }
+    XDestroyImage(image);
 }

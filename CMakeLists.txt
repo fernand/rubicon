@@ -3,6 +3,7 @@ project(rubicon C)
 
 set(CMAKE_C_STANDARD 99)
 add_compile_options(-Wall -Wextra -Wpedantic)
+add_link_options(-fsanitize=address -static-libasan)
 
 add_executable(rubicon src/linux_main.c)
 target_include_directories(rubicon PUBLIC third_party)
