@@ -26,8 +26,8 @@ void Node_add_parent(Node *node, Board *board)
 
 static ParentsAllocator ParentsAllocator_init()
 {
-    size_t default_num_vecs = 1 << 22;
-    printf("Size of ParentsAllocator: %f MB\n", (float)(1 << 22) * PARENTS_MAX_SIZE * sizeof(size_t) / 1e6);
+    size_t default_num_vecs = (size_t)(1.6f * (float)(1 << 23));
+    printf("Size of ParentsAllocator: %f MB\n", (1.6f * (float)(1 << 23)) * PARENTS_MAX_SIZE * sizeof(size_t) / 1e6);
     Board **arr = calloc(default_num_vecs * PARENTS_MAX_SIZE, sizeof(size_t));
     if (arr == NULL)
     {
@@ -61,8 +61,8 @@ static Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
 
 NodeMap NodeMap_init()
 {
-    size_t default_capacity = 1 << 23;
-    printf("Size of NodeMap: %f MB\n", (float)(1 << 23) * sizeof(NodeMapEntry) / 1e6);
+    size_t default_capacity = 1 << 24;
+    printf("Size of NodeMap: %f MB\n", (float)(1 << 24) * sizeof(NodeMapEntry) / 1e6);
     NodeMapEntry *entries = calloc(default_capacity, sizeof(NodeMapEntry));
     return (NodeMap){
         .allocator = ParentsAllocator_init(),

@@ -103,10 +103,8 @@ void create_game_config(char *screenshot_path, GameConfig *config)
 void update_player_cells(Board *board, uint8_t *buffer, size_t y_stride)
 {
     size_t x_stride = 3;
-
     uint8_t cell_idx = 0;
     float current_y = TOP_Y;
-
     for (uint8_t depth = 1; depth <= MAX_DEPTH; depth++)
     {
         uint8_t num_virt_cells = num_virt_cells_for_depth(depth);

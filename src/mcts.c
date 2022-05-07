@@ -7,11 +7,11 @@ float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board *parent_
     if (node->visits == 0)
         return INFINITY;
     uint32_t parent_visits = num_parent_visits(boardcache, nodecache, node);
-    if (node->visits > parent_visits)
-    {
-        printf("calculate_value: parent visits should be higher than node visits\n");
-        exit(1);
-    }
+    //    if (node->visits > parent_visits)
+    //    {
+    //        printf("calculate_value: parent visits should be higher than node visits\n");
+    //        exit(1);
+    //    }
     float exploration_term = sqrtf(2.0f) * sqrtf(logf((float)parent_visits) / node->visits);
     return Node_value(node) + exploration_term;
 }
@@ -112,6 +112,10 @@ void playouts(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, si
 {
     Board *managed_board = BoardCache_get_or_create(boardcache, board);
     for (size_t i = 0; i < num_playouts; i++)
+    {
         playout(config, boardcache, nodecache, managed_board);
+        if (i % 100 == 0)
+            printf("%zu\n", i);
+    }
     Cell best_move = mcts_move(config, boardcache, nodecache, managed_board);
 }

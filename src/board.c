@@ -255,8 +255,8 @@ Moves get_valid_moves(GameConfig *config, Board *board)
 
 BoardCache BoardCache_init()
 {
-    size_t default_capacity = 1 << 22;
-    printf("Size of BoardCache: %f MB\n", (float)(1 << 22) * sizeof(Board) / 1e6);
+    size_t default_capacity = 1 << 24;
+    printf("Size of BoardCache: %f MB\n", (float)(1 << 24) * sizeof(Board) / 1e6);
     Board *boards = calloc(default_capacity, sizeof(Board));
     return (BoardCache){
         .allocator = CellsAllocator_init(),
