@@ -1,9 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
 #define MAX_DEPTH 22
 #define NUM_CELLS 238
 #define NUM_CANDITATE_CELLS 242

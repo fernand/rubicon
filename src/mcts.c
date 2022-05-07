@@ -1,7 +1,3 @@
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "node.h"
 
 float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board *parent_board, Board *board)

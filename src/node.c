@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "node.h"
 
 #define PARENTS_MAX_SIZE NUM_CELLS / 2

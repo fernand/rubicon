@@ -1,7 +1,6 @@
 #pragma once
 
 #include <time.h>
-#include <stdint.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -42,7 +41,6 @@ void screenshot(ScreenshotInfo info, uint8_t *buffer)
     unsigned long red_mask = image->red_mask;
     unsigned long green_mask = image->green_mask;
     unsigned long blue_mask = image->blue_mask;
-
     for (int x = 0; x < info.width; x++)
         for (int y = 0; y < info.height; y++)
         {

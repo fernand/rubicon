@@ -1,7 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "board.h"
 
 #define TOP_GOLD 30  // index the top gold cell
@@ -173,8 +169,8 @@ bool Cells_isin(Cells cells, Cell cell)
 
 static CellsAllocator CellsAllocator_init()
 {
-    size_t default_num_vecs = 8 * 1 << 23;
-    printf("Size of CellsAllocator: %f MB\n", 8.0f * (1 << 23) * NUM_CELLS * sizeof(Cell) / 1e6);
+    size_t default_num_vecs = 4 * 1 << 23;
+    printf("Size of CellsAllocator: %f MB\n", 4.0f * (1 << 23) * NUM_CELLS * sizeof(Cell) / 1e6);
     Cell *arr = calloc(default_num_vecs * NUM_CELLS, sizeof(Cell));
     return (CellsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
 }
