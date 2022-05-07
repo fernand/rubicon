@@ -29,7 +29,7 @@ Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache,
     if (moves.size == 0)
     {
         // If you cannot move let's call it a draw
-        return (Cell){};
+        return (Cell){.idx = 0, .depth = 0};
     }
     for (size_t i = 0; i < moves.size; i++)
     {

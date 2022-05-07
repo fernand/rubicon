@@ -174,6 +174,7 @@ bool Cells_isin(Cells cells, Cell cell)
 static CellsAllocator CellsAllocator_init()
 {
     size_t default_num_vecs = 1 << 22;
+    printf("Size of CellsAllocator: %f MB\n", (float)(1 << 22) * NUM_CELLS * sizeof(Cell) / 1e6);
     Cell *arr = calloc(default_num_vecs * NUM_CELLS, sizeof(Cell));
     return (CellsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
 }
@@ -258,7 +259,8 @@ Moves get_valid_moves(GameConfig *config, Board board)
 
 BoardCache BoardCache_init()
 {
-    size_t default_capacity = 1 << 20;
+    size_t default_capacity = 1 << 22;
+    printf("Size of BoardCache: %f MB\n", (float)(1 << 22) * sizeof(Board) / 1e6);
     Board *boards = calloc(default_capacity, sizeof(Board));
     return (BoardCache){
         .allocator = CellsAllocator_init(),
