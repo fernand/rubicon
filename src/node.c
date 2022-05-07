@@ -19,7 +19,7 @@ void Node_add_parent(Node *node, Board *board)
         if (Board_cmp(node->parents.data[i], board))
             return;
     }
-    if (node->parents.size >= NUM_CELLS)
+    if (node->parents.size >= PARENTS_MAX_SIZE)
     {
         printf("Parent size reached PARENTS_MAX_SIZE\n");
         exit(1);
@@ -64,8 +64,8 @@ static Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
 
 NodeMap NodeMap_init()
 {
-    size_t default_capacity = 1 << 22;
-    printf("Size of NodeMap: %f MB\n", (float)(1 << 22) * sizeof(NodeMapEntry) / 1e6);
+    size_t default_capacity = 1 << 23;
+    printf("Size of NodeMap: %f MB\n", (float)(1 << 23) * sizeof(NodeMapEntry) / 1e6);
     NodeMapEntry *entries = calloc(default_capacity, sizeof(NodeMapEntry));
     return (NodeMap){
         .allocator = ParentsAllocator_init(),
