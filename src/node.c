@@ -57,7 +57,7 @@ static Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
         printf("ParentsAllocator_create_cells: ran out of memory\n");
         exit(1);
     }
-    Board **parents = &allocator->arr[allocator->size * NUM_CELLS];
+    Board **parents = &allocator->arr[allocator->size * PARENTS_MAX_SIZE];
     allocator->size++;
     return (Parents){.size = 0, .data = parents};
 }
