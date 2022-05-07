@@ -181,9 +181,9 @@ static void CellsAllocator_reset(CellsAllocator *allocator)
     allocator->size = 0;
 }
 
-static void CellsAllocator_destroy(CellsAllocator allocator)
+static void CellsAllocator_destroy(CellsAllocator *allocator)
 {
-    free(allocator.arr);
+    free(allocator->arr);
 }
 
 static Cells CellsAllocator_create_cells(CellsAllocator *allocator)
@@ -316,7 +316,7 @@ void BoardCache_reset(BoardCache *boardcache)
 void BoardCache_destroy(BoardCache *boardcache)
 {
     free(boardcache->boards);
-    CellsAllocator_destroy(boardcache->allocator);
+    CellsAllocator_destroy(&boardcache->allocator);
 }
 
 Board *Board_play_move(BoardCache *boardcache, Board *board, Cell cell)

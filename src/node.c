@@ -43,9 +43,9 @@ static void ParentsAllocator_reset(ParentsAllocator *allocator)
     allocator->size = 0;
 }
 
-static void ParentsAllocator_destroy(ParentsAllocator allocator)
+static void ParentsAllocator_destroy(ParentsAllocator *allocator)
 {
-    free(allocator.arr);
+    free(allocator->arr);
 }
 
 static Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
@@ -116,7 +116,7 @@ void NodeMap_reset(NodeMap *map)
 void NodeMap_destroy(NodeMap *map)
 {
     free(map->entries);
-    ParentsAllocator_destroy(map->allocator);
+    ParentsAllocator_destroy(&map->allocator);
 }
 
 uint32_t num_parent_visits(BoardCache *boardcache, NodeMap *map, Node *node)
