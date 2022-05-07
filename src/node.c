@@ -37,9 +37,10 @@ static ParentsAllocator ParentsAllocator_init()
     return (ParentsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
 }
 
-static void ParentsAllocator_reset(ParentsAllocator allocator)
+static void ParentsAllocator_reset(ParentsAllocator *allocator)
 {
-    memset(allocator.arr, 0, allocator.size * PARENTS_MAX_SIZE * sizeof(size_t));
+    memset(allocator->arr, 0, allocator->size * PARENTS_MAX_SIZE * sizeof(size_t));
+    allocator->size = 0;
 }
 
 static void ParentsAllocator_destroy(ParentsAllocator allocator)
@@ -108,7 +109,8 @@ Node *NodeMap_get_or_create(NodeMap *map, Board *board)
 void NodeMap_reset(NodeMap *map)
 {
     memset(map->entries, 0, map->size * sizeof(NodeMapEntry));
-    ParentsAllocator_reset(map->allocator);
+    map->size = 0;
+    ParentsAllocator_reset(&map->allocator);
 }
 
 void NodeMap_destroy(NodeMap *map)

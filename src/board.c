@@ -175,9 +175,10 @@ static CellsAllocator CellsAllocator_init()
     return (CellsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
 }
 
-static void CellsAllocator_reset(CellsAllocator allocator)
+static void CellsAllocator_reset(CellsAllocator *allocator)
 {
-    memset(allocator.arr, 0, sizeof(Cell) * NUM_CELLS * allocator.size);
+    memset(allocator->arr, 0, sizeof(Cell) * NUM_CELLS * allocator->size);
+    allocator->size = 0;
 }
 
 static void CellsAllocator_destroy(CellsAllocator allocator)
@@ -308,7 +309,8 @@ Board *BoardCache_get_or_create(BoardCache *boardcache, Board board)
 void BoardCache_reset(BoardCache *boardcache)
 {
     memset(boardcache->boards, 0, boardcache->size * sizeof(Board));
-    CellsAllocator_reset(boardcache->allocator);
+    boardcache->size = 0;
+    CellsAllocator_reset(&boardcache->allocator);
 }
 
 void BoardCache_destroy(BoardCache *boardcache)
