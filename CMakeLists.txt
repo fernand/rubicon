@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(rubicon C)
 
 set(CMAKE_C_STANDARD 99)
-add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-function)
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 add_executable(rubicon src/linux_main.c)
 target_include_directories(rubicon PUBLIC third_party)

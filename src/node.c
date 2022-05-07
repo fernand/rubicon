@@ -25,19 +25,24 @@ void Node_add_parent(Node *node, Board board)
     node->parents.data[node->parents.size++] = board;
 }
 
-ParentsAllocator ParentsAllocator_init()
+static ParentsAllocator ParentsAllocator_init()
 {
     size_t default_num_vecs = 1 << 20;
     Board *arr = calloc(default_num_vecs * NUM_CELLS, sizeof(Board));
     return (ParentsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
 }
 
-void ParentsAllocator_destroy(ParentsAllocator allocator)
+static void ParentsAllocator_reset(ParentsAllocator allocator)
+{
+    memset(allocator.arr, 0, allocator.size * NUM_CELLS * sizeof(Board));
+}
+
+static void ParentsAllocator_destroy(ParentsAllocator allocator)
 {
     free(allocator.arr);
 }
 
-Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
+static Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
 {
     if (allocator->size == allocator->capacity)
     {
@@ -89,13 +94,19 @@ Node *NodeMap_get_or_create(NodeMap *map, Board board)
     }
 }
 
-void NodeMap_destroy(NodeMap map)
+void NodeMap_reset(NodeMap *map)
 {
-    free(map.entries);
-    ParentsAllocator_destroy(map.allocator);
+    memset(map->entries, 0, map->size * sizeof(NodeMapEntry));
+    ParentsAllocator_reset(map->allocator);
 }
 
-uint32_t num_parent_visits(BoardCache *boardcache, NodeMap *map, Board board, Node *node)
+void NodeMap_destroy(NodeMap *map)
+{
+    free(map->entries);
+    ParentsAllocator_destroy(map->allocator);
+}
+
+uint32_t num_parent_visits(BoardCache *boardcache, NodeMap *map, Node *node)
 {
     uint32_t num_visits = 0;
     for (size_t i = 0; i < node->parents.size; i++)

@@ -10,7 +10,7 @@ float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board parent_b
     Node_add_parent(node, parent_board);
     if (node->visits == 0)
         return INFINITY;
-    uint32_t parent_visits = num_parent_visits(boardcache, nodecache, board, node);
+    uint32_t parent_visits = num_parent_visits(boardcache, nodecache, node);
     if (node->visits > parent_visits)
     {
         printf("calculate_value: parent visits should be higher than node visits\n");
@@ -94,8 +94,8 @@ Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, B
     for (size_t i = 0; i < moves.size; i++)
     {
         Board child_board = Board_play_move(boardcache, board, moves.moves[i]);
-        Node *node = NodeMap_get_or_create(nodecache, board);
-        float value = Node_value(node);
+        Node *child_node = NodeMap_get_or_create(nodecache, child_board);
+        float value = Node_value(child_node);
         if (value > max_value)
         {
             max_value = value;
@@ -106,16 +106,10 @@ Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, B
     return best_move;
 }
 
-void playouts(GameConfig *config, size_t num_playouts, Board board)
+void playouts(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, size_t num_playouts, Board board)
 {
-    // TODO: don't reallocate stuff for every playout
-    // Just memset the memory
-    BoardCache boardcache = BoardCache_init();
-    NodeMap nodecache = NodeMap_init();
-    Board managed_board = BoardCache_get_or_create(&boardcache, board);
+    Board managed_board = BoardCache_get_or_create(boardcache, board);
     for (size_t i = 0; i < num_playouts; i++)
-        playout(config, &boardcache, &nodecache, managed_board);
-    Cell best_move = mcts_move(config, &boardcache, &nodecache, managed_board);
-    BoardCache_destroy(boardcache);
-    NodeMap_destroy(nodecache);
+        playout(config, boardcache, nodecache, managed_board);
+    Cell best_move = mcts_move(config, boardcache, nodecache, managed_board);
 }
