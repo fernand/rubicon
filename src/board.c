@@ -233,7 +233,8 @@ Moves get_valid_moves(GameConfig *config, Board board)
         for (size_t i = 0; i < NUM_CELLS; i++)
         {
             Cell cell = config->all_cells[i];
-            if (!Cells_isin(board.player_cells[0], cell) && !Cells_isin(board.player_cells[1], cell))
+            if (!Cells_isin(board.player_cells[0], cell) && !Cells_isin(board.player_cells[1], cell) &&
+                cell.idx != TOP_GOLD && cell.idx != BTM_GOLD)
                 Moves_add_cell(&moves, cell);
         }
     }
