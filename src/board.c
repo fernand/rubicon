@@ -173,8 +173,8 @@ bool Cells_isin(Cells cells, Cell cell)
 
 static CellsAllocator CellsAllocator_init()
 {
-    size_t default_num_vecs = 1 << 22;
-    printf("Size of CellsAllocator: %f MB\n", (float)(1 << 22) * NUM_CELLS * sizeof(Cell) / 1e6);
+    size_t default_num_vecs = 8 * 1 << 22;
+    printf("Size of CellsAllocator: %f MB\n", 8.0f * (1 << 22) * NUM_CELLS * sizeof(Cell) / 1e6);
     Cell *arr = calloc(default_num_vecs * NUM_CELLS, sizeof(Cell));
     return (CellsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
 }
@@ -211,7 +211,7 @@ static void Moves_add_cell(Moves *moves, Cell cell)
     moves->moves[moves->size++] = cell;
 }
 
-static void Moves_add_neighbor_cells(GameConfig *config, Board board, Moves *moves, Cell cell)
+static void Moves_add_neighbor_cells(GameConfig *config, Board *board, Moves *moves, Cell cell)
 {
     uint8_t connections = config->cell_connections[cell.idx];
     for (uint8_t j = 0; j < 8; j++)
@@ -219,22 +219,22 @@ static void Moves_add_neighbor_cells(GameConfig *config, Board board, Moves *mov
         if (IS_CONNECTION(connections, j))
         {
             Cell neighbor = Cell_neighbor(cell, j);
-            if (!Cells_isin(board.player_cells[0], neighbor) && !Cells_isin(board.player_cells[1], neighbor))
+            if (!Cells_isin(board->player_cells[0], neighbor) && !Cells_isin(board->player_cells[1], neighbor))
                 Moves_add_cell(moves, neighbor);
         }
     }
 }
 
-Moves get_valid_moves(GameConfig *config, Board board)
+Moves get_valid_moves(GameConfig *config, Board *board)
 {
     Moves moves = {0};
-    if (board.round_to_play == 1)
+    if (board->round_to_play == 1)
     {
         // Any free cell on the board can be played
         for (size_t i = 0; i < NUM_CELLS; i++)
         {
             Cell cell = config->all_cells[i];
-            if (!Cells_isin(board.player_cells[0], cell) && !Cells_isin(board.player_cells[1], cell) &&
+            if (!Cells_isin(board->player_cells[0], cell) && !Cells_isin(board->player_cells[1], cell) &&
                 cell.idx != TOP_GOLD && cell.idx != BTM_GOLD)
                 Moves_add_cell(&moves, cell);
         }
@@ -247,10 +247,10 @@ Moves get_valid_moves(GameConfig *config, Board board)
             Cell gold_cell = config->gold_cells[i];
             Moves_add_neighbor_cells(config, board, &moves, gold_cell);
         }
-        size_t player_idx = board.player_to_play;
-        for (size_t i = 0; i < board.player_cells[player_idx].size; i++)
+        size_t player_idx = board->player_to_play;
+        for (size_t i = 0; i < board->player_cells[player_idx].size; i++)
         {
-            Cell cell = board.player_cells[player_idx].data[i];
+            Cell cell = board->player_cells[player_idx].data[i];
             Moves_add_neighbor_cells(config, board, &moves, cell);
         }
     }
@@ -270,7 +270,7 @@ BoardCache BoardCache_init()
     };
 }
 
-Board BoardCache_get_or_create(BoardCache *boardcache, Board board)
+Board *BoardCache_get_or_create(BoardCache *boardcache, Board board)
 {
     if (boardcache->size == boardcache->capacity)
     {
@@ -281,8 +281,8 @@ Board BoardCache_get_or_create(BoardCache *boardcache, Board board)
     // Linear probing
     for (;;)
     {
-        Board entry = boardcache->boards[index];
-        if (Board_isempty(&entry))
+        Board *entry = &boardcache->boards[index];
+        if (Board_isempty(entry))
         {
             Board new_entry = (Board){
                 .player_cells = {CellsAllocator_create_cells(&boardcache->allocator),
@@ -297,11 +297,11 @@ Board BoardCache_get_or_create(BoardCache *boardcache, Board board)
                 for (size_t i = 0; i < cells.size; i++)
                     new_entry.player_cells[player_idx].data[i] = cells.data[i];
             }
-            boardcache->boards[index] = new_entry;
+            *entry = new_entry;
             boardcache->size++;
-            return new_entry;
+            return entry;
         }
-        else if (Board_cmp(&board, &entry))
+        else if (Board_cmp(&board, entry))
             return entry;
         index++;
         if (index == boardcache->capacity)
@@ -321,21 +321,21 @@ void BoardCache_destroy(BoardCache *boardcache)
     CellsAllocator_destroy(boardcache->allocator);
 }
 
-Board Board_play_move(BoardCache *boardcache, Board board, Cell cell)
+Board *Board_play_move(BoardCache *boardcache, Board *board, Cell cell)
 {
     Cell cell_0[NUM_CELLS];
     Cell cell_1[NUM_CELLS];
     Board new_board = Board_stack_allocate_board(cell_0, cell_1);
-    uint8_t new_player_idx = incr_player(board.player_to_play);
+    uint8_t new_player_idx = incr_player(board->player_to_play);
     new_board.player_to_play = new_player_idx;
-    new_board.round_to_play = incr_round(new_player_idx, board.round_to_play);
+    new_board.round_to_play = incr_round(new_player_idx, board->round_to_play);
     for (size_t i = 0; i < 2; i++)
     {
-        Cells player_cells = board.player_cells[i];
+        Cells player_cells = board->player_cells[i];
         for (size_t j = 0; j < player_cells.size; j++)
             Cells_append(&new_board.player_cells[i], player_cells.data[j]);
     }
-    Cells_append(&new_board.player_cells[board.player_to_play], cell);
+    Cells_append(&new_board.player_cells[board->player_to_play], cell);
     return BoardCache_get_or_create(boardcache, new_board);
 }
 
@@ -380,13 +380,13 @@ bool won(GameConfig *config, Cells cells)
     return false;
 }
 
-GameOutcome evaluate_outcome(GameConfig *config, Board board)
+GameOutcome evaluate_outcome(GameConfig *config, Board *board)
 {
     // Two occupied gold cells
-    size_t num_occupied_cells = board.player_cells[0].size + board.player_cells[1].size + 2;
+    size_t num_occupied_cells = board->player_cells[0].size + board->player_cells[1].size + 2;
     return (GameOutcome){
-        .player_lost = won(config, board.player_cells[0]),
-        .player_won = won(config, board.player_cells[1]),
+        .player_lost = won(config, board->player_cells[0]),
+        .player_won = won(config, board->player_cells[1]),
         .draw = num_occupied_cells >= NUM_CELLS,
     };
 }

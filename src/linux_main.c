@@ -20,7 +20,7 @@ int main()
     Cell cell_1[NUM_CELLS];
     Board main_board = Board_stack_allocate_board(cell_0, cell_1);
     Cells_append(&main_board.player_cells[0], (Cell){.idx = 131, .depth = 12});
-    size_t num_playouts = 250;
+    size_t num_playouts = 2000;
     for (;;)
     {
         screenshot(sc_info, buffer);

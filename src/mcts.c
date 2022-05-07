@@ -4,7 +4,7 @@
 
 #include "node.h"
 
-float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board parent_board, Board board)
+float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board *parent_board, Board *board)
 {
     Node *node = NodeMap_get_or_create(nodecache, board);
     Node_add_parent(node, parent_board);
@@ -21,7 +21,7 @@ float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board parent_b
 }
 
 // Can return an empty cell in case no move can be chosen
-Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board board)
+Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board *board)
 {
     float max_value = 0.0f;
     Cell best_move = {0};
@@ -33,7 +33,7 @@ Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache,
     }
     for (size_t i = 0; i < moves.size; i++)
     {
-        Board child_board = Board_play_move(boardcache, board, moves.moves[i]);
+        Board *child_board = Board_play_move(boardcache, board, moves.moves[i]);
         float value = calculate_value(boardcache, nodecache, board, child_board);
         if (value > max_value)
         {
@@ -44,7 +44,7 @@ Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache,
     return best_move;
 }
 
-void backpropagate(NodeMap *nodecache, Board *game_history, size_t game_size, GameOutcome outcome)
+void backpropagate(NodeMap *nodecache, Board **game_history, size_t game_size, GameOutcome outcome)
 {
     for (size_t i = 0; i < game_size; i++)
     {
@@ -59,13 +59,13 @@ void backpropagate(NodeMap *nodecache, Board *game_history, size_t game_size, Ga
     }
 }
 
-void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board board)
+void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board *board)
 {
     GameOutcome outcome = {0};
     bool game_over = false;
     size_t game_size = 1;
-    Board game_history[NUM_CELLS];
-    Board current_board = board;
+    Board *game_history[NUM_CELLS];
+    Board *current_board = board;
 
     game_history[0] = current_board;
     outcome = evaluate_outcome(config, current_board);
@@ -77,7 +77,7 @@ void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Boa
             outcome.draw = true;
         else
         {
-            Board next_board = Board_play_move(boardcache, current_board, move);
+            Board *next_board = Board_play_move(boardcache, current_board, move);
             game_history[game_size++] = next_board;
             current_board = next_board;
             outcome = evaluate_outcome(config, current_board);
@@ -87,7 +87,7 @@ void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Boa
     backpropagate(nodecache, game_history, game_size, outcome);
 }
 
-Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board board)
+Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board *board)
 {
     float max_value = 0.0f;
     Cell best_move = {0};
@@ -99,7 +99,7 @@ Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, B
     }
     for (size_t i = 0; i < moves.size; i++)
     {
-        Board child_board = Board_play_move(boardcache, board, moves.moves[i]);
+        Board *child_board = Board_play_move(boardcache, board, moves.moves[i]);
         Node *child_node = NodeMap_get_or_create(nodecache, child_board);
         float value = Node_value(child_node);
         if (value > max_value)
@@ -114,7 +114,7 @@ Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, B
 
 void playouts(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, size_t num_playouts, Board board)
 {
-    Board managed_board = BoardCache_get_or_create(boardcache, board);
+    Board *managed_board = BoardCache_get_or_create(boardcache, board);
     for (size_t i = 0; i < num_playouts; i++)
         playout(config, boardcache, nodecache, managed_board);
     Cell best_move = mcts_move(config, boardcache, nodecache, managed_board);
