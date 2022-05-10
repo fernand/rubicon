@@ -44,13 +44,15 @@ void create_game_config(char *screenshot_path, GameConfig *config)
     float current_y = TOP_Y;
     for (uint8_t depth = 1; depth <= MAX_DEPTH; depth++)
     {
-        uint8_t num_virt_cells = num_virt_cells_for_depth(depth);
+        uint8_t num_virt_cells = virt_cells_for_depth[depth];
         // Middle for num_cells == 1
         float current_x = LEFT_X + WIDTH / 2 - ((num_virt_cells - 1) / 2) * DST;
         for (uint8_t i = 0; i < num_virt_cells; i++)
         {
             bool is_real_cell = false;
+#ifdef DEBUG_IMG
             size_t offset = (size_t)current_y * y_stride + (size_t)current_x * x_stride;
+#endif
             uint8_t connections = 0;
             for (uint8_t j = 0; j < 8; j++)
             {
@@ -71,20 +73,10 @@ void create_game_config(char *screenshot_path, GameConfig *config)
 #endif
                 }
             }
-            if (img[offset] == 255 && img[offset + 1] == 218 && img[offset + 2] == 0)
-            {
-                size_t gold_cell_idx = 0;
-                if (!Cell_isempty(config->gold_cells[0]))
-                    gold_cell_idx = 1;
-                config->gold_cells[gold_cell_idx] = (Cell){
-                    .idx = cell_idx,
-                    .depth = depth,
-                };
-            }
             if (is_real_cell)
             {
                 config->cell_connections[cell_idx] = connections;
-                config->all_cells[real_cell_idx] = (Cell){.idx = cell_idx, .depth = depth};
+                config->all_cells[real_cell_idx] = cell_idx;
                 real_cell_idx += 1;
             }
             cell_idx++;
@@ -100,32 +92,31 @@ void create_game_config(char *screenshot_path, GameConfig *config)
     stbi_image_free(img);
 }
 
-void update_player_cells(Board *board, uint8_t *buffer, size_t y_stride)
+void update_player_cells(Board *board, const uint8_t *buffer, size_t y_stride)
 {
     size_t x_stride = 3;
     uint8_t cell_idx = 0;
     float current_y = TOP_Y;
     for (uint8_t depth = 1; depth <= MAX_DEPTH; depth++)
     {
-        uint8_t num_virt_cells = num_virt_cells_for_depth(depth);
+        uint8_t num_virt_cells = virt_cells_for_depth[depth];
         float current_x = LEFT_X + WIDTH / 2 - ((num_virt_cells - 1) / 2) * DST;
         for (uint8_t i = 0; i < num_virt_cells; i++)
         {
             size_t offset = (size_t)current_y * y_stride + (size_t)current_x * x_stride;
-            Cell cell = {.idx = cell_idx, .depth = depth};
             if (buffer[offset] == 0 && buffer[offset + 1] == 255 && buffer[offset + 2] == 255)
             {
-                if (!Cells_isin(board->player_cells[0], cell))
+                if (!cell_occupied(board->field[0], cell_idx))
                 {
-                    Cells_append(&board->player_cells[0], cell);
+                    occupy_cell(board->field[0], cell_idx);
                     printf("%u changed to ai\n", cell_idx);
                 }
             }
             else if (buffer[offset] == 255 && buffer[offset + 1] == 0 && buffer[offset + 2] == 255)
             {
-                if (!Cells_isin(board->player_cells[1], cell))
+                if (!cell_occupied(board->field[1], cell_idx))
                 {
-                    Cells_append(&board->player_cells[1], cell);
+                    occupy_cell(board->field[1], cell_idx);
                     printf("%u changed to player\n", cell_idx);
                 }
             }
@@ -134,15 +125,16 @@ void update_player_cells(Board *board, uint8_t *buffer, size_t y_stride)
         }
         current_y += DST;
     }
-    // Update player_to_play and round_to_play
-    if (board->player_cells[0].size > board->player_cells[1].size)
+    uint8_t num_player_0_cells = count_occupied_cells(board->field[0]);
+    uint8_t num_player_1_cells = count_occupied_cells((board->field[1]));
+    if (num_player_0_cells > num_player_1_cells)
     {
-        board->player_to_play = 1;
-        board->round_to_play = board->player_cells[1].size % 6 + 1;
+        set_player_to_play(board->field[0], 1);
+        set_round_to_play(board->field[0], num_player_1_cells % 6 + 1);
     }
     else
     {
-        board->player_to_play = 0;
-        board->round_to_play = board->player_cells[0].size % 6 + 1;
+        set_player_to_play(board->field[0], 0);
+        set_round_to_play(board->field[0], num_player_0_cells % 6 + 1);
     }
 }

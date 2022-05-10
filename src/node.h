@@ -5,7 +5,7 @@
 typedef struct Parents
 {
     size_t size;
-    Board **data;
+    Board *data;
 } Parents;
 
 typedef struct Node
@@ -21,12 +21,12 @@ typedef struct ParentsAllocator
 {
     size_t size;
     size_t capacity;
-    Board **arr;
+    Board *arr;
 } ParentsAllocator;
 
 typedef struct NodeMapEntry
 {
-    Board *board;
+    Board board;
     Node node;
 } NodeMapEntry;
 

@@ -1,37 +1,37 @@
 #include "node.h"
 
-float calculate_value(BoardCache *boardcache, NodeMap *nodecache, Board *parent_board, Board *board)
+float calculate_value(NodeMap *nodecache, Board parent_board, Board board)
 {
     Node *node = NodeMap_get_or_create(nodecache, board);
     Node_add_parent(node, parent_board);
     if (node->visits == 0)
         return INFINITY;
-    uint32_t parent_visits = num_parent_visits(boardcache, nodecache, node);
+    uint32_t parent_visits = num_parent_visits(nodecache, node);
     // TODO: Not sure why this sometimes happens
     //    if (node->visits > parent_visits)
     //    {
     //        printf("calculate_value: parent visits should be higher than node visits\n");
     //        exit(1);
     //    }
-    float exploration_term = sqrtf(2.0f) * sqrtf(logf((float)parent_visits) / node->visits);
+    float exploration_term = sqrtf(2.0f) * sqrtf(logf((float)parent_visits) / (float)node->visits);
     return Node_value(node) + exploration_term;
 }
 
 // Can return an empty cell in case no move can be chosen
-Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board *board)
+int choose_move(GameConfig *config, NodeMap *nodecache, Board board)
 {
     float max_value = 0.0f;
-    Cell best_move = {0};
+    int best_move = -1;
     Moves moves = get_valid_moves(config, board);
     if (moves.size == 0)
     {
         // If you cannot move let's call it a draw
-        return (Cell){.idx = 0, .depth = 0};
+        return -1;
     }
-    for (size_t i = 0; i < moves.size; i++)
+    for (int i = 0; i < moves.size; i++)
     {
-        Board *child_board = Board_play_move(boardcache, board, moves.moves[i]);
-        float value = calculate_value(boardcache, nodecache, board, child_board);
+        Board child_board = play_move(board, (uint8_t)moves.moves[i]);
+        float value = calculate_value(nodecache, board, child_board);
         if (value > max_value)
         {
             max_value = value;
@@ -41,7 +41,7 @@ Cell choose_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache,
     return best_move;
 }
 
-void backpropagate(NodeMap *nodecache, Board **game_history, size_t game_size, GameOutcome outcome)
+void backpropagate(NodeMap *nodecache, Board *game_history, size_t game_size, GameOutcome outcome)
 {
     for (size_t i = 0; i < game_size; i++)
     {
@@ -56,25 +56,25 @@ void backpropagate(NodeMap *nodecache, Board **game_history, size_t game_size, G
     }
 }
 
-void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board *board)
+void playout(GameConfig *config, NodeMap *nodecache, Board board)
 {
     GameOutcome outcome = {0};
     bool game_over = false;
     size_t game_size = 1;
-    Board *game_history[NUM_CELLS];
-    Board *current_board = board;
+    Board game_history[NUM_CELLS];
+    Board current_board = board;
 
     game_history[0] = current_board;
     outcome = evaluate_outcome(config, current_board);
     game_over = outcome.player_lost || outcome.player_won || outcome.draw;
     while (!game_over)
     {
-        Cell move = choose_move(config, boardcache, nodecache, current_board);
-        if (Cell_isempty(move))
+        int move = choose_move(config, nodecache, current_board);
+        if (move == -1)
             outcome.draw = true;
         else
         {
-            Board *next_board = Board_play_move(boardcache, current_board, move);
+            Board next_board = play_move(current_board, move);
             game_history[game_size++] = next_board;
             current_board = next_board;
             outcome = evaluate_outcome(config, current_board);
@@ -84,10 +84,10 @@ void playout(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Boa
     backpropagate(nodecache, game_history, game_size, outcome);
 }
 
-Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, Board *board)
+int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
 {
     float max_value = 0.0f;
-    Cell best_move = {0};
+    int best_move = -1;
     Moves moves = get_valid_moves(config, board);
     if (moves.size == 0)
     {
@@ -96,7 +96,7 @@ Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, B
     }
     for (size_t i = 0; i < moves.size; i++)
     {
-        Board *child_board = Board_play_move(boardcache, board, moves.moves[i]);
+        Board child_board = play_move(board, moves.moves[i]);
         Node *child_node = NodeMap_get_or_create(nodecache, child_board);
         float value = Node_value(child_node);
         if (value > max_value)
@@ -105,18 +105,18 @@ Cell mcts_move(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, B
             best_move = moves.moves[i];
         }
     }
-    printf("Best move: %u, depth:%u, value:%f\n", best_move.idx, best_move.depth, max_value);
+    uint8_t depth = best_move == -1 ? 0 : depth_for_cell[(uint8_t)best_move];
+    printf("Best move: %i, depth:%u, value:%f\n", best_move, depth, max_value);
     return best_move;
 }
 
-void playouts(GameConfig *config, BoardCache *boardcache, NodeMap *nodecache, size_t num_playouts, Board board)
+void playouts(GameConfig *config, NodeMap *nodecache, size_t num_playouts, Board board)
 {
-    Board *managed_board = BoardCache_get_or_create(boardcache, board);
     for (size_t i = 0; i < num_playouts; i++)
     {
-        playout(config, boardcache, nodecache, managed_board);
+        playout(config, nodecache, board);
         if (i % 100 == 0)
             printf("%zu\n", i);
     }
-    Cell best_move = mcts_move(config, boardcache, nodecache, managed_board);
+    int best_move = mcts_move(config, nodecache, board);
 }

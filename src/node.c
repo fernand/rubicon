@@ -1,6 +1,14 @@
 #include "node.h"
 
+#define FNV_PRIME 16777619UL
+#define FNV_SEED 2166136261UL
+
 #define PARENTS_MAX_SIZE NUM_CELLS / 4
+
+static inline uint32_t fnv1a(uint8_t b, uint32_t hash)
+{
+    return (b ^ hash) * FNV_PRIME;
+}
 
 float Node_value(Node *node)
 {
@@ -9,11 +17,11 @@ float Node_value(Node *node)
     return (float)node->wins / node->visits;
 }
 
-void Node_add_parent(Node *node, Board *board)
+void Node_add_parent(Node *node, Board board)
 {
     for (size_t i = 0; i < node->parents.size; i++)
     {
-        if (Board_cmp(node->parents.data[i], board))
+        if (board_cmp(node->parents.data[i], board))
             return;
     }
     if (node->parents.size >= PARENTS_MAX_SIZE)
@@ -24,73 +32,88 @@ void Node_add_parent(Node *node, Board *board)
     node->parents.data[node->parents.size++] = board;
 }
 
-static ParentsAllocator ParentsAllocator_init()
+ParentsAllocator ParentsAllocator_init()
 {
-    size_t default_num_vecs = (size_t)(1.6f * (float)(1 << 23));
-    printf("Size of ParentsAllocator: %f MB\n", (1.6f * (float)(1 << 23)) * PARENTS_MAX_SIZE * sizeof(size_t) / 1e6);
-    Board **arr = calloc(default_num_vecs * PARENTS_MAX_SIZE, sizeof(size_t));
+    size_t num_vecs = (size_t)(1.0f * (float)(1 << 22));
+    printf("Size of ParentsAllocator: %f MB\n", (float)num_vecs * PARENTS_MAX_SIZE * sizeof(Board) / 1e6);
+    Board *arr = calloc(num_vecs * PARENTS_MAX_SIZE, sizeof(Board));
     if (arr == NULL)
     {
         printf("Could not allocate ParentsAllocator\n");
         exit(1);
     }
-    return (ParentsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
+    return (ParentsAllocator){.size = 0, .capacity = num_vecs, .arr = arr};
 }
 
-static void ParentsAllocator_reset(ParentsAllocator *allocator)
+void ParentsAllocator_reset(ParentsAllocator *allocator)
 {
-    memset(allocator->arr, 0, allocator->size * PARENTS_MAX_SIZE * sizeof(size_t));
+    memset(allocator->arr, 0, allocator->size * PARENTS_MAX_SIZE * sizeof(Board));
     allocator->size = 0;
 }
 
-static void ParentsAllocator_destroy(ParentsAllocator *allocator)
+void ParentsAllocator_destroy(ParentsAllocator *allocator)
 {
     free(allocator->arr);
 }
 
-static Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
+Parents ParentsAllocator_create_parents(ParentsAllocator *allocator)
 {
     if (allocator->size == allocator->capacity)
     {
         printf("ParentsAllocator_create_cells: ran out of memory\n");
         exit(1);
     }
-    Board **parents = &allocator->arr[allocator->size * PARENTS_MAX_SIZE];
+    Board *parents = &allocator->arr[allocator->size * PARENTS_MAX_SIZE];
     allocator->size++;
     return (Parents){.size = 0, .data = parents};
 }
 
 NodeMap NodeMap_init()
 {
-    size_t default_capacity = 1 << 24;
-    printf("Size of NodeMap: %f MB\n", (float)(1 << 24) * sizeof(NodeMapEntry) / 1e6);
-    NodeMapEntry *entries = calloc(default_capacity, sizeof(NodeMapEntry));
+    size_t capacity = 1 << 24;
+    printf("Size of NodeMap: %f MB\n", (float)capacity * sizeof(NodeMapEntry) / 1e6);
+    NodeMapEntry *entries = calloc(capacity, sizeof(NodeMapEntry));
+    if (entries == NULL)
+    {
+        printf("Could not allocate NodeMap\n");
+        exit(1);
+    }
     return (NodeMap){
         .allocator = ParentsAllocator_init(),
         .size = 0,
-        .capacity = default_capacity,
+        .capacity = capacity,
         .entries = entries,
     };
 }
 
-static inline bool NodeMapEntry_isempty(NodeMapEntry entry)
+uint32_t board_hash(Board board)
 {
-    return entry.board == NULL;
+    uint32_t hash = FNV_SEED;
+    for (uint8_t p_idx = 0; p_idx < 2; p_idx++)
+    {
+        for (uint8_t f_idx = 0; f_idx < 4; f_idx++)
+        {
+            uint8_t *bytes = (uint8_t *)&board.field[p_idx][f_idx];
+            for (uint8_t b_idx = 0; b_idx < sizeof(uint64_t); b_idx++)
+                hash = fnv1a(bytes[b_idx], hash);
+        }
+    }
+    return hash;
 }
 
-Node *NodeMap_get_or_create(NodeMap *map, Board *board)
+Node *NodeMap_get_or_create(NodeMap *map, Board board)
 {
     if (map->size == map->capacity)
     {
         printf("NodeMap_get_or_create: ran out of memory\n");
         exit(1);
     }
-    size_t index = Board_hash(board) & (map->capacity - 1);
+    size_t index = board_hash(board) & (map->capacity - 1);
     // Linear probing
     for (;;)
     {
         NodeMapEntry entry = map->entries[index];
-        if (NodeMapEntry_isempty(entry))
+        if (entry.board.field[0][3] == 0)
         {
             NodeMapEntry new_entry = (NodeMapEntry){
                 .board = board, .node = (Node){.parents = ParentsAllocator_create_parents(&map->allocator)}};
@@ -98,7 +121,7 @@ Node *NodeMap_get_or_create(NodeMap *map, Board *board)
             map->size++;
             return &map->entries[index].node;
         }
-        else if (Board_cmp(board, entry.board))
+        else if (board_cmp(board, entry.board))
             return &map->entries[index].node;
         index++;
         if (index == map->capacity)
@@ -119,12 +142,12 @@ void NodeMap_destroy(NodeMap *map)
     ParentsAllocator_destroy(&map->allocator);
 }
 
-uint32_t num_parent_visits(BoardCache *boardcache, NodeMap *map, Node *node)
+uint32_t num_parent_visits(NodeMap *map, Node *node)
 {
     uint32_t num_visits = 0;
     for (size_t i = 0; i < node->parents.size; i++)
     {
-        Board *parent_board = BoardCache_get_or_create(boardcache, *node->parents.data[i]);
+        Board parent_board = node->parents.data[i];
         Node *parent_node = NodeMap_get_or_create(map, parent_board);
         num_visits += parent_node->visits;
     }

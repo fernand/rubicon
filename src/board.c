@@ -5,12 +5,96 @@
 
 #define IS_CONNECTION(connections, j) ((connections & 1 << j) != 0)
 
-#define FNV_PRIME 16777619UL
-#define FNV_SEED 2166136261UL
+#define PLAYER_IDX 50
+#define ROUND_IDX_START 51
 
-static inline uint32_t fnv1a(uint8_t b, uint32_t hash)
+/*
+if (depth <= 11)
+    return 2 * depth - 1;
+else
+    return 21 - 2 * (depth - 12);
+*/
+const uint8_t virt_cells_for_depth[23] = {0,  1,  3,  5,  7,  9,  11, 13, 15, 17, 19, 21,
+                                          21, 19, 17, 15, 13, 11, 9,  7,  5,  3,  1};
+
+const uint8_t depth_for_cell[242] = {
+    1,  2,  2,  2,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,  5,  5,  5,  5,  5,  6,  6,
+    6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  8,  8,  8,  8,  8,
+    8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
+    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11,
+    11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+    12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14,
+    14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,
+    17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 21, 21, 21, 22,
+};
+
+static inline Board occupy_cell(uint64_t *field, int idx)
 {
-    return (b ^ hash) * FNV_PRIME;
+    div_t quotrem = div(idx, 64);
+    field[quotrem.quot] = field[quotrem.quot] | (1UL << quotrem.rem);
+}
+
+static inline bool cell_occupied(const uint64_t *field, int idx)
+{
+    div_t quotrem = div(idx, 64);
+    return field[quotrem.quot] >> quotrem.rem == 1;
+}
+
+uint64_t count_occupied_cells(const uint64_t *field)
+{
+    uint64_t num_occupied_cells = 0;
+    for (int f_idx = 0; f_idx < 4; f_idx++)
+    {
+        uint64_t n = field[f_idx];
+        uint8_t max_idx = f_idx < 3 ? 64 : PLAYER_IDX;
+        for (int i = 0; i < max_idx; i++)
+        {
+            num_occupied_cells += n & 1UL;
+            n >>= 1;
+        }
+    }
+    return num_occupied_cells;
+}
+
+uint8_t occupied_cells(const uint64_t *field, uint8_t *cells)
+{
+    uint8_t cells_size = 0;
+    for (uint8_t f_idx = 0; f_idx < 4; f_idx++)
+    {
+        uint8_t max_idx = f_idx < 3 ? 64 : PLAYER_IDX;
+        for (uint8_t i = 0; i < max_idx; i++)
+        {
+            uint8_t cell_idx = f_idx * 64 + i;
+            if (cell_occupied(field, f_idx * 64 + i))
+                cells[cells_size++] = cell_idx;
+        }
+    }
+    return cells_size;
+}
+
+static inline Board set_player_to_play(uint64_t *field, uint8_t player_to_play)
+{
+    field[3] = (field[3] & ~(1UL << (PLAYER_IDX - 1))) | ((uint64_t)player_to_play << (PLAYER_IDX - 1));
+}
+
+static inline uint8_t player_to_play(const uint64_t *field)
+{
+    return (field[3] >> PLAYER_IDX) & 1UL;
+}
+
+static inline Board set_round_to_play(uint64_t *field, uint8_t round_to_play)
+{
+    field[3] = (field[3] & ~(1UL << ROUND_IDX_START)) | (((uint64_t)round_to_play & 1UL) << ROUND_IDX_START);
+    field[3] = (field[3] & ~(1UL << (ROUND_IDX_START + 1))) |
+               ((((uint64_t)round_to_play >> 1) & 1UL) << (ROUND_IDX_START + 1));
+    field[3] = (field[3] & ~(1UL << (ROUND_IDX_START + 2))) |
+               ((((uint64_t)round_to_play >> 2) & 1UL) << (ROUND_IDX_START + 2));
+}
+
+static inline uint8_t round_to_play(const uint64_t *field)
+{
+    return (field[3] >> ROUND_IDX_START) & 7UL;
 }
 
 static inline uint8_t incr_round(uint8_t new_player_idx, uint8_t round)
@@ -29,14 +113,6 @@ static inline uint8_t incr_player(uint8_t player_idx)
         return 0;
     else
         return 1;
-}
-
-static inline uint8_t num_virt_cells_for_depth(uint8_t depth)
-{
-    if (depth <= 11)
-        return 2 * depth - 1;
-    else
-        return 21 - 2 * (depth - 12);
 }
 
 static inline uint8_t num_virt_cells_to_top_neigbor(uint8_t depth)
@@ -71,306 +147,167 @@ static inline uint8_t num_virt_cells_to_btm_neigbor(uint8_t depth)
     }
 }
 
-Cell Cell_neighbor(Cell cell, uint8_t neighbor)
+uint8_t neighbor(uint8_t cell_idx, uint8_t neighbor)
 {
     switch (neighbor)
     {
     case 0: // right
-        return (Cell){.idx = cell.idx + 1, .depth = cell.depth};
+        return cell_idx + 1;
     case 1:
-        return (Cell){.idx = cell.idx - num_virt_cells_to_top_neigbor(cell.depth) + 1, .depth = cell.depth - 1};
+        return cell_idx - num_virt_cells_to_top_neigbor(depth_for_cell[cell_idx]) + 1;
     case 2: // top
-        return (Cell){.idx = cell.idx - num_virt_cells_to_top_neigbor(cell.depth), .depth = cell.depth - 1};
+        return cell_idx - num_virt_cells_to_top_neigbor(depth_for_cell[cell_idx]);
     case 3:
-        return (Cell){.idx = cell.idx - num_virt_cells_to_top_neigbor(cell.depth) - 1, .depth = cell.depth - 1};
+        return cell_idx - num_virt_cells_to_top_neigbor(depth_for_cell[cell_idx]) - 1;
     case 4: // left
-        return (Cell){.idx = cell.idx - 1, .depth = cell.depth};
+        return cell_idx - 1;
     case 5:
-        return (Cell){.idx = cell.idx + num_virt_cells_to_btm_neigbor(cell.depth) - 1, .depth = cell.depth + 1};
+        return cell_idx + num_virt_cells_to_btm_neigbor(depth_for_cell[cell_idx]) - 1;
     case 6: // bottom
-        return (Cell){.idx = cell.idx + num_virt_cells_to_btm_neigbor(cell.depth), .depth = cell.depth + 1};
+        return cell_idx + num_virt_cells_to_btm_neigbor(depth_for_cell[cell_idx]);
     case 7:
-        return (Cell){cell.idx + num_virt_cells_to_btm_neigbor(cell.depth) + 1, .depth = cell.depth + 1};
+        return cell_idx + num_virt_cells_to_btm_neigbor(depth_for_cell[cell_idx]) + 1;
     default:
-        printf("Error in get_neighbor_idx, cell_idx:%u, cell_depth:%u, neighbor:%u\n", cell.idx, cell.depth, neighbor);
+        printf("Error in get_neighbor_idx, cell_idx:%u, neighbor:%u\n", cell_idx, neighbor);
         exit(1);
     }
 }
 
-static uint32_t Cells_hash(Cells *cells, uint32_t hash)
+bool cells_isin(const uint8_t *cells, size_t cells_size, uint8_t cell_idx)
 {
-    for (size_t i = 0; i < cells->size; i++)
-        hash = fnv1a(cells->data[i].idx, hash);
-    return hash;
-}
-
-static inline bool Cell_isempty(Cell cell)
-{
-    return cell.depth == 0;
-}
-
-static inline bool Board_isempty(Board *board)
-{
-    return board->round_to_play == 0;
-}
-
-Board Board_stack_allocate_board(Cell *cell_0, Cell *cell_1)
-{
-    Cells cells_0 = (Cells){.size = 0, .data = cell_0};
-    Cells cells_1 = (Cells){.size = 0, .data = cell_1};
-    return (Board){
-        .player_cells = {cells_0, cells_1},
-        .player_to_play = 1,
-        .round_to_play = 1,
-    };
-}
-
-bool Board_cmp(Board *b1, Board *b2)
-{
-    if (b1->player_cells[0].size != b2->player_cells[0].size || b1->player_cells[1].size != b2->player_cells[1].size ||
-        b1->round_to_play != b2->round_to_play)
-        return false;
-    bool equal = true;
-    for (size_t i = 0; i < b1->player_cells[0].size; i++)
-        equal = equal && (b1->player_cells[0].data[i].idx == b2->player_cells[0].data[i].idx);
-    for (size_t i = 0; i < b1->player_cells[1].size; i++)
-        equal = equal && (b1->player_cells[1].data[i].idx == b2->player_cells[1].data[i].idx);
-    return equal;
-}
-
-uint32_t Board_hash(Board *board)
-{
-    uint32_t hash = FNV_SEED;
-    hash = Cells_hash(&board->player_cells[0], hash);
-    hash = Cells_hash(&board->player_cells[1], hash);
-    hash = fnv1a(board->round_to_play, hash);
-    return hash;
-}
-
-void Cells_append(Cells *cells, Cell cell)
-{
-    if (cells->size == NUM_CELLS)
+    for (size_t i = 0; i < cells_size; i++)
     {
-        printf("Cells_append: got a Cells vector of size NUM_CELLS\n");
-        exit(1);
-    }
-    cells->data[cells->size++] = cell;
-}
-
-bool Cells_isin(Cells cells, Cell cell)
-{
-    for (size_t i = 0; i < cells.size; i++)
-    {
-        if (cells.data[i].idx == cell.idx)
+        if (cells[i] == cell_idx)
             return true;
     }
     return false;
 }
 
-static CellsAllocator CellsAllocator_init()
+bool board_cmp(Board b1, Board b2)
 {
-    size_t default_num_vecs = 4 * 1 << 23;
-    printf("Size of CellsAllocator: %f MB\n", 4.0f * (1 << 23) * NUM_CELLS * sizeof(Cell) / 1e6);
-    Cell *arr = calloc(default_num_vecs * NUM_CELLS, sizeof(Cell));
-    return (CellsAllocator){.size = 0, .capacity = default_num_vecs, .arr = arr};
-}
-
-static void CellsAllocator_reset(CellsAllocator *allocator)
-{
-    memset(allocator->arr, 0, sizeof(Cell) * NUM_CELLS * allocator->size);
-    allocator->size = 0;
-}
-
-static void CellsAllocator_destroy(CellsAllocator *allocator)
-{
-    free(allocator->arr);
-}
-
-static Cells CellsAllocator_create_cells(CellsAllocator *allocator)
-{
-    if (allocator->size == allocator->capacity)
+    bool equal = true;
+    for (uint8_t p_idx = 0; p_idx < 2; p_idx++)
     {
-        printf("CellsAllocator_create_cells: ran out of memory\n");
-        exit(1);
+        for (uint8_t f_idx = 0; f_idx < 4; f_idx++)
+            equal = equal && (b1.field[p_idx][f_idx] == b2.field[p_idx][f_idx]);
     }
-    Cell *cells = &allocator->arr[allocator->size * NUM_CELLS];
-    allocator->size++;
-    return (Cells){.size = 0, .data = cells};
+    return equal;
 }
 
-static void Moves_add_cell(Moves *moves, Cell cell)
+Board play_move(Board board, uint8_t cell_idx)
+{
+    Board new_board = board;
+    uint8_t player_to_play_idx = player_to_play(board.field[0]);
+    uint8_t new_player_idx = incr_player(player_to_play_idx);
+    set_player_to_play(new_board.field[0], new_player_idx);
+    set_round_to_play(new_board.field[0], incr_round(new_player_idx, round_to_play(board.field[0])));
+    occupy_cell(new_board.field[player_to_play_idx], cell_idx);
+    return new_board;
+}
+
+static void add_move(Moves *moves, uint8_t cell_idx)
 {
     for (size_t i = 0; i < moves->size; i++)
     {
-        if (cell.idx == moves->moves[i].idx)
+        if (cell_idx == moves->moves[i])
             return;
     }
-    moves->moves[moves->size++] = cell;
+    moves->moves[moves->size++] = cell_idx;
 }
 
-static void Moves_add_neighbor_cells(GameConfig *config, Board *board, Moves *moves, Cell cell)
+static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t ai_cells_size, uint8_t *player_cells,
+                               uint8_t player_cells_size, Moves *moves, uint8_t cell_idx)
 {
-    uint8_t connections = config->cell_connections[cell.idx];
+    uint8_t connections = config->cell_connections[cell_idx];
     for (uint8_t j = 0; j < 8; j++)
     {
         if (IS_CONNECTION(connections, j))
         {
-            Cell neighbor = Cell_neighbor(cell, j);
-            if (!Cells_isin(board->player_cells[0], neighbor) && !Cells_isin(board->player_cells[1], neighbor))
-                Moves_add_cell(moves, neighbor);
+            uint8_t neighbor_idx = neighbor(cell_idx, j);
+            if (!cells_isin(ai_cells, ai_cells_size, neighbor_idx) &&
+                !cells_isin(player_cells, player_cells_size, neighbor_idx))
+                add_move(moves, neighbor_idx);
         }
     }
 }
 
-Moves get_valid_moves(GameConfig *config, Board *board)
+Moves get_valid_moves(GameConfig *config, Board board)
 {
     Moves moves = {0};
-    if (board->round_to_play == 1)
+    uint8_t ai_cells[NUM_CELLS / 2];
+    uint8_t ai_cells_size = occupied_cells(board.field[0], ai_cells);
+    uint8_t player_cells[NUM_CELLS / 2];
+    uint8_t player_cells_size = occupied_cells(board.field[1], player_cells);
+    if (round_to_play(board.field[0]) == 1)
     {
         // Any free cell on the board can be played
         for (size_t i = 0; i < NUM_CELLS; i++)
         {
-            Cell cell = config->all_cells[i];
-            if (!Cells_isin(board->player_cells[0], cell) && !Cells_isin(board->player_cells[1], cell) &&
-                cell.idx != TOP_GOLD && cell.idx != BTM_GOLD)
-                Moves_add_cell(&moves, cell);
+            uint8_t cell_idx = config->all_cells[i];
+            if (!cells_isin(ai_cells, ai_cells_size, cell_idx) &&
+                !cells_isin(player_cells, player_cells_size, cell_idx) && cell_idx != TOP_GOLD && cell_idx != BTM_GOLD)
+                add_move(&moves, cell_idx);
         }
     }
     else
     {
         // For rounds 2+, gold cell neighbors can also be played
-        for (size_t i = 0; i < 2; i++)
+        add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, TOP_GOLD);
+        add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, BTM_GOLD);
+        uint8_t player_idx = player_to_play(board.field[0]);
+        uint8_t *cells;
+        uint8_t cells_size;
+        if (player_idx == 0)
         {
-            Cell gold_cell = config->gold_cells[i];
-            Moves_add_neighbor_cells(config, board, &moves, gold_cell);
+            cells = ai_cells;
+            cells_size = ai_cells_size;
         }
-        size_t player_idx = board->player_to_play;
-        for (size_t i = 0; i < board->player_cells[player_idx].size; i++)
+        else
         {
-            Cell cell = board->player_cells[player_idx].data[i];
-            Moves_add_neighbor_cells(config, board, &moves, cell);
+            cells = player_cells;
+            cells_size = player_cells_size;
         }
+        for (uint8_t i = 0; i < cells_size; i++)
+            add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, cells[i]);
     }
     return moves;
 }
 
-BoardCache BoardCache_init()
+bool won(GameConfig *config, uint64_t *field)
 {
-    size_t default_capacity = 1 << 24;
-    printf("Size of BoardCache: %f MB\n", (float)(1 << 24) * sizeof(Board) / 1e6);
-    Board *boards = calloc(default_capacity, sizeof(Board));
-    return (BoardCache){
-        .allocator = CellsAllocator_init(),
-        .size = 0,
-        .capacity = default_capacity,
-        .boards = boards,
-    };
-}
-
-Board *BoardCache_get_or_create(BoardCache *boardcache, Board board)
-{
-    if (boardcache->size == boardcache->capacity)
-    {
-        printf("BoardCache_get_or_create: ran out of memory\n");
-        exit(1);
-    }
-    uint32_t index = Board_hash(&board) & (boardcache->capacity - 1);
-    // Linear probing
-    for (;;)
-    {
-        Board *entry = &boardcache->boards[index];
-        if (Board_isempty(entry))
-        {
-            Board new_entry = (Board){
-                .player_cells = {CellsAllocator_create_cells(&boardcache->allocator),
-                                 CellsAllocator_create_cells(&boardcache->allocator)},
-                .player_to_play = board.player_to_play,
-                .round_to_play = board.round_to_play,
-            };
-            for (size_t player_idx = 0; player_idx < 2; player_idx++)
-            {
-                Cells cells = board.player_cells[player_idx];
-                new_entry.player_cells[player_idx].size = cells.size;
-                for (size_t i = 0; i < cells.size; i++)
-                    new_entry.player_cells[player_idx].data[i] = cells.data[i];
-            }
-            *entry = new_entry;
-            boardcache->size++;
-            return entry;
-        }
-        else if (Board_cmp(&board, entry))
-            return entry;
-        index++;
-        if (index == boardcache->capacity)
-            index = 0;
-    }
-}
-
-void BoardCache_reset(BoardCache *boardcache)
-{
-    memset(boardcache->boards, 0, boardcache->capacity * sizeof(Board));
-    boardcache->size = 0;
-    CellsAllocator_reset(&boardcache->allocator);
-}
-
-void BoardCache_destroy(BoardCache *boardcache)
-{
-    free(boardcache->boards);
-    CellsAllocator_destroy(&boardcache->allocator);
-}
-
-Board *Board_play_move(BoardCache *boardcache, Board *board, Cell cell)
-{
-    Cell cell_0[NUM_CELLS];
-    Cell cell_1[NUM_CELLS];
-    Board new_board = Board_stack_allocate_board(cell_0, cell_1);
-    uint8_t new_player_idx = incr_player(board->player_to_play);
-    new_board.player_to_play = new_player_idx;
-    new_board.round_to_play = incr_round(new_player_idx, board->round_to_play);
-    for (size_t i = 0; i < 2; i++)
-    {
-        Cells player_cells = board->player_cells[i];
-        for (size_t j = 0; j < player_cells.size; j++)
-            Cells_append(&new_board.player_cells[i], player_cells.data[j]);
-    }
-    Cells_append(&new_board.player_cells[board->player_to_play], cell);
-    return BoardCache_get_or_create(boardcache, new_board);
-}
-
-bool won(GameConfig *config, Cells cells)
-{
-    // TODO: reduce the size of this
-    Cell stack[NUM_CELLS];
+    uint8_t cells[NUM_CELLS];
+    uint8_t cells_size = occupied_cells(field, cells);
+    uint8_t stack[NUM_CELLS];
     stack[0] = config->all_cells[TOP_GOLD];
-    size_t stack_size = 1;
-    Cell visited[NUM_CELLS];
-    size_t visited_size = 0;
+    uint8_t stack_size = 1;
+    uint8_t visited[NUM_CELLS];
+    uint8_t visited_size = 0;
     while (stack_size > 0)
     {
-        Cell cell = stack[stack_size - 1];
+        uint8_t cell_idx = stack[stack_size - 1];
         stack_size--;
-        visited[visited_size++] = cell;
-        uint8_t connections = config->cell_connections[cell.idx];
+        visited[visited_size++] = cell_idx;
+        uint8_t connections = config->cell_connections[cell_idx];
         for (uint8_t j = 0; j < 8; j++)
         {
             if (IS_CONNECTION(connections, j))
             {
-                Cell neighbor = Cell_neighbor(cell, j);
-                if (neighbor.idx == BTM_GOLD)
+                uint8_t neighbor_idx = neighbor(cell_idx, j);
+                if (neighbor_idx == BTM_GOLD)
                     return true;
-                else if (Cells_isin(cells, neighbor))
+                else if (cells_isin(cells, cells_size, neighbor_idx))
                 {
                     bool already_visited = false;
-                    for (size_t i = 0; i < visited_size; i++)
+                    for (uint8_t i = 0; i < visited_size; i++)
                     {
-                        if (visited[i].idx == neighbor.idx)
+                        if (visited[i] == neighbor_idx)
                         {
                             already_visited = true;
                             break;
                         }
                     }
                     if (!already_visited)
-                        stack[stack_size++] = neighbor;
+                        stack[stack_size++] = neighbor_idx;
                 }
             }
         }
@@ -378,13 +315,17 @@ bool won(GameConfig *config, Cells cells)
     return false;
 }
 
-GameOutcome evaluate_outcome(GameConfig *config, Board *board)
+GameOutcome evaluate_outcome(GameConfig *config, Board board)
 {
     // Two occupied gold cells
-    size_t num_occupied_cells = board->player_cells[0].size + board->player_cells[1].size + 2;
+    uint64_t num_occupied_cells = 2;
+    for (int p_idx = 0; p_idx < 2; p_idx++)
+    {
+        num_occupied_cells += count_occupied_cells(board.field[p_idx]);
+    }
     return (GameOutcome){
-        .player_lost = won(config, board->player_cells[0]),
-        .player_won = won(config, board->player_cells[1]),
+        .player_lost = won(config, board.field[0]),
+        .player_won = won(config, board.field[1]),
         .draw = num_occupied_cells >= NUM_CELLS,
     };
 }
