@@ -29,16 +29,16 @@ const uint8_t depth_for_cell[242] = {
     17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 21, 21, 21, 22,
 };
 
-static inline Board occupy_cell(uint64_t *field, int idx)
+static inline Board occupy_cell(uint64_t *field, uint8_t cell_idx)
 {
-    div_t quotrem = div(idx, 64);
+    div_t quotrem = div((int)cell_idx, 64);
     field[quotrem.quot] = field[quotrem.quot] | (1UL << quotrem.rem);
 }
 
-static inline bool cell_occupied(const uint64_t *field, int idx)
+static inline bool cell_occupied(const uint64_t *field, uint8_t cell_idx)
 {
-    div_t quotrem = div(idx, 64);
-    return field[quotrem.quot] >> quotrem.rem == 1;
+    div_t quotrem = div((int)cell_idx, 64);
+    return (field[quotrem.quot] >> quotrem.rem) & 1UL == 1;
 }
 
 uint64_t count_occupied_cells(const uint64_t *field)
@@ -66,7 +66,7 @@ uint8_t occupied_cells(const uint64_t *field, uint8_t *cells)
         for (uint8_t i = 0; i < max_idx; i++)
         {
             uint8_t cell_idx = f_idx * 64 + i;
-            if (cell_occupied(field, f_idx * 64 + i))
+            if (cell_occupied(field, cell_idx))
                 cells[cells_size++] = cell_idx;
         }
     }
@@ -75,7 +75,7 @@ uint8_t occupied_cells(const uint64_t *field, uint8_t *cells)
 
 static inline Board set_player_to_play(uint64_t *field, uint8_t player_to_play)
 {
-    field[3] = (field[3] & ~(1UL << (PLAYER_IDX - 1))) | ((uint64_t)player_to_play << (PLAYER_IDX - 1));
+    field[3] = (field[3] & ~(1UL << PLAYER_IDX)) | ((uint64_t)player_to_play << PLAYER_IDX);
 }
 
 static inline uint8_t player_to_play(const uint64_t *field)

@@ -74,7 +74,7 @@ void playout(GameConfig *config, NodeMap *nodecache, Board board)
             outcome.draw = true;
         else
         {
-            Board next_board = play_move(current_board, move);
+            Board next_board = play_move(current_board, (uint8_t)move);
             game_history[game_size++] = next_board;
             current_board = next_board;
             outcome = evaluate_outcome(config, current_board);
@@ -113,10 +113,6 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
 void playouts(GameConfig *config, NodeMap *nodecache, size_t num_playouts, Board board)
 {
     for (size_t i = 0; i < num_playouts; i++)
-    {
         playout(config, nodecache, board);
-        if (i % 100 == 0)
-            printf("%zu\n", i);
-    }
     int best_move = mcts_move(config, nodecache, board);
 }
