@@ -32,12 +32,12 @@ void Node_add_parent(Node *node, Board *board)
 
 BoardAllocator BoardAllocator_Init()
 {
-    size_t num_boards = (size_t)(1.6f * (1 << 22));
+    size_t num_boards = (size_t)(1.0f * (1 << 24));
     printf("Size of BoardAllocator: %f MB\n", (float)num_boards * sizeof(Board) / 1e6);
     Board *boards = calloc(num_boards, sizeof(Board));
     if (boards == NULL)
     {
-        printf("Could not allocate ParentsAllocator\n");
+        printf("Could not allocate BoardAllocator\n");
         exit(1);
     }
     return (BoardAllocator){.size = 0, .capacity = num_boards, .boards = boards};
@@ -68,12 +68,12 @@ Board *BoardAllocator_create_board(BoardAllocator *allocator)
 
 NodeAllocator NodeAllocator_Init()
 {
-    size_t num_nodes = (size_t)(1.6f * (float)(1 << 22));
+    size_t num_nodes = (size_t)(1.0f * (float)(1 << 24));
     printf("Size of NodeAllocator: %f MB\n", (float)num_nodes * sizeof(Node) / 1e6);
     Node *nodes = calloc(num_nodes, sizeof(Node));
     if (nodes == NULL)
     {
-        printf("Could not allocate ParentsAllocator\n");
+        printf("Could not allocate NodeAllocator\n");
         exit(1);
     }
     return (NodeAllocator){.size = 0, .capacity = num_nodes, .nodes = nodes};
@@ -104,7 +104,7 @@ Node *NodeAllocator_create_node(NodeAllocator *allocator)
 
 NodeMap NodeMap_init()
 {
-    size_t capacity = (size_t)(1.6f * (1 << 22));
+    size_t capacity = 1 << 24;
     printf("Size of NodeMap: %f MB\n", (float)capacity * sizeof(NodeMapEntry) / 1e6);
     NodeMapEntry *entries = calloc(capacity, sizeof(NodeMapEntry));
     if (entries == NULL)
