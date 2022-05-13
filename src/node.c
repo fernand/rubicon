@@ -32,7 +32,7 @@ void Node_add_parent(Node *node, Board *board)
 
 BoardAllocator BoardAllocator_Init()
 {
-    size_t num_boards = (1UL << 20);
+    size_t num_boards = (size_t)(1.6f * (1 << 22));
     printf("Size of BoardAllocator: %f MB\n", (float)num_boards * sizeof(Board) / 1e6);
     Board *boards = calloc(num_boards, sizeof(Board));
     if (boards == NULL)
@@ -61,7 +61,7 @@ Board *BoardAllocator_create_board(BoardAllocator *allocator)
         printf("BoardAllocator_create_node: ran out of memory\n");
         exit(1);
     }
-    Board *board = &allocator->boards[allocator->size * sizeof(Board)];
+    Board *board = &allocator->boards[allocator->size];
     allocator->size++;
     return board;
 }
@@ -97,14 +97,14 @@ Node *NodeAllocator_create_node(NodeAllocator *allocator)
         printf("NodeAllocator_create_node: ran out of memory\n");
         exit(1);
     }
-    Node *node = &allocator->nodes[allocator->size * sizeof(Node)];
+    Node *node = &allocator->nodes[allocator->size];
     allocator->size++;
     return node;
 }
 
 NodeMap NodeMap_init()
 {
-    size_t capacity = 1 << 22;
+    size_t capacity = (size_t)(1.6f * (1 << 22));
     printf("Size of NodeMap: %f MB\n", (float)capacity * sizeof(NodeMapEntry) / 1e6);
     NodeMapEntry *entries = calloc(capacity, sizeof(NodeMapEntry));
     if (entries == NULL)
