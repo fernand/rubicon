@@ -29,7 +29,7 @@ const uint8_t depth_for_cell[242] = {
     17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 21, 21, 21, 22,
 };
 
-static inline Board occupy_cell(uint64_t *field, uint8_t cell_idx)
+static inline void occupy_cell(uint64_t *field, uint8_t cell_idx)
 {
     div_t quotrem = div((int)cell_idx, 64);
     field[quotrem.quot] = field[quotrem.quot] | (1UL << quotrem.rem);
@@ -38,7 +38,7 @@ static inline Board occupy_cell(uint64_t *field, uint8_t cell_idx)
 static inline bool cell_occupied(const uint64_t *field, uint8_t cell_idx)
 {
     div_t quotrem = div((int)cell_idx, 64);
-    return (field[quotrem.quot] >> quotrem.rem) & 1UL == 1;
+    return ((field[quotrem.quot] >> quotrem.rem) & 1UL) == 1;
 }
 
 uint64_t count_occupied_cells(const uint64_t *field)
@@ -73,7 +73,7 @@ uint8_t occupied_cells(const uint64_t *field, uint8_t *cells)
     return cells_size;
 }
 
-static inline Board set_player_to_play(uint64_t *field, uint8_t player_to_play)
+static inline void set_player_to_play(uint64_t *field, uint8_t player_to_play)
 {
     field[3] = (field[3] & ~(1UL << PLAYER_IDX)) | ((uint64_t)player_to_play << PLAYER_IDX);
 }
@@ -83,7 +83,7 @@ static inline uint8_t player_to_play(const uint64_t *field)
     return (field[3] >> PLAYER_IDX) & 1UL;
 }
 
-static inline Board set_round_to_play(uint64_t *field, uint8_t round_to_play)
+static inline void set_round_to_play(uint64_t *field, uint8_t round_to_play)
 {
     field[3] = (field[3] & ~(1UL << ROUND_IDX_START)) | (((uint64_t)round_to_play & 1UL) << ROUND_IDX_START);
     field[3] = (field[3] & ~(1UL << (ROUND_IDX_START + 1))) |
@@ -183,24 +183,24 @@ bool cells_isin(const uint8_t *cells, size_t cells_size, uint8_t cell_idx)
     return false;
 }
 
-bool board_cmp(Board b1, Board b2)
+bool board_cmp(Board *b1, Board *b2)
 {
     bool equal = true;
     for (uint8_t p_idx = 0; p_idx < 2; p_idx++)
     {
         for (uint8_t f_idx = 0; f_idx < 4; f_idx++)
-            equal = equal && (b1.field[p_idx][f_idx] == b2.field[p_idx][f_idx]);
+            equal = equal && (b1->field[p_idx][f_idx] == b2->field[p_idx][f_idx]);
     }
     return equal;
 }
 
-Board play_move(Board board, uint8_t cell_idx)
+Board play_move(Board *board, uint8_t cell_idx)
 {
-    Board new_board = board;
-    uint8_t player_to_play_idx = player_to_play(board.field[0]);
+    Board new_board = *board;
+    uint8_t player_to_play_idx = player_to_play(board->field[0]);
     uint8_t new_player_idx = incr_player(player_to_play_idx);
     set_player_to_play(new_board.field[0], new_player_idx);
-    set_round_to_play(new_board.field[0], incr_round(new_player_idx, round_to_play(board.field[0])));
+    set_round_to_play(new_board.field[0], incr_round(new_player_idx, round_to_play(board->field[0])));
     occupy_cell(new_board.field[player_to_play_idx], cell_idx);
     return new_board;
 }
@@ -231,14 +231,14 @@ static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t ai
     }
 }
 
-Moves get_valid_moves(GameConfig *config, Board board)
+Moves get_valid_moves(GameConfig *config, Board *board)
 {
     Moves moves = {0};
     uint8_t ai_cells[NUM_CELLS / 2];
-    uint8_t ai_cells_size = occupied_cells(board.field[0], ai_cells);
+    uint8_t ai_cells_size = occupied_cells(board->field[0], ai_cells);
     uint8_t player_cells[NUM_CELLS / 2];
-    uint8_t player_cells_size = occupied_cells(board.field[1], player_cells);
-    if (round_to_play(board.field[0]) == 1)
+    uint8_t player_cells_size = occupied_cells(board->field[1], player_cells);
+    if (round_to_play(board->field[0]) == 1)
     {
         // Any free cell on the board can be played
         for (size_t i = 0; i < NUM_CELLS; i++)
@@ -254,7 +254,7 @@ Moves get_valid_moves(GameConfig *config, Board board)
         // For rounds 2+, gold cell neighbors can also be played
         add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, TOP_GOLD);
         add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, BTM_GOLD);
-        uint8_t player_idx = player_to_play(board.field[0]);
+        uint8_t player_idx = player_to_play(board->field[0]);
         uint8_t *cells;
         uint8_t cells_size;
         if (player_idx == 0)
@@ -315,17 +315,17 @@ bool won(GameConfig *config, uint64_t *field)
     return false;
 }
 
-GameOutcome evaluate_outcome(GameConfig *config, Board board)
+GameOutcome evaluate_outcome(GameConfig *config, Board *board)
 {
     // Two occupied gold cells
     uint64_t num_occupied_cells = 2;
     for (int p_idx = 0; p_idx < 2; p_idx++)
     {
-        num_occupied_cells += count_occupied_cells(board.field[p_idx]);
+        num_occupied_cells += count_occupied_cells(board->field[p_idx]);
     }
     return (GameOutcome){
-        .player_lost = won(config, board.field[0]),
-        .player_won = won(config, board.field[1]),
+        .player_lost = won(config, board->field[0]),
+        .player_won = won(config, board->field[1]),
         .draw = num_occupied_cells >= NUM_CELLS,
     };
 }

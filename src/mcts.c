@@ -1,8 +1,8 @@
 #include "node.h"
 
-float calculate_value(NodeMap *nodecache, Board parent_board, Board board)
+float calculate_value(NodeMap *nodecache, Board *parent_board, Board board)
 {
-    Node *node = NodeMap_get_or_create(nodecache, board);
+    Node *node = NodeMap_get_or_create(nodecache, board).node;
     Node_add_parent(node, parent_board);
     if (node->visits == 0)
         return INFINITY;
@@ -18,7 +18,7 @@ float calculate_value(NodeMap *nodecache, Board parent_board, Board board)
 }
 
 // Can return an empty cell in case no move can be chosen
-int choose_move(GameConfig *config, NodeMap *nodecache, Board board)
+int choose_move(GameConfig *config, NodeMap *nodecache, Board *board)
 {
     float max_value = 0.0f;
     int best_move = -1;
@@ -31,7 +31,8 @@ int choose_move(GameConfig *config, NodeMap *nodecache, Board board)
     for (int i = 0; i < moves.size; i++)
     {
         Board child_board = play_move(board, (uint8_t)moves.moves[i]);
-        float value = calculate_value(nodecache, board, child_board);
+        Board *managed_child_board = NodeMap_get_or_create(nodecache, child_board).board;
+        float value = calculate_value(nodecache, board, *managed_child_board);
         if (value > max_value)
         {
             max_value = value;
@@ -41,11 +42,11 @@ int choose_move(GameConfig *config, NodeMap *nodecache, Board board)
     return best_move;
 }
 
-void backpropagate(NodeMap *nodecache, Board *game_history, size_t game_size, GameOutcome outcome)
+void backpropagate(NodeMap *nodecache, Board **game_history, size_t game_size, GameOutcome outcome)
 {
     for (size_t i = 0; i < game_size; i++)
     {
-        Node *node = NodeMap_get_or_create(nodecache, game_history[i]);
+        Node *node = NodeMap_get_or_create(nodecache, *game_history[i]).node;
         node->visits++;
         if (outcome.player_lost)
             node->losses++;
@@ -61,8 +62,8 @@ void playout(GameConfig *config, NodeMap *nodecache, Board board)
     GameOutcome outcome = {0};
     bool game_over = false;
     size_t game_size = 1;
-    Board game_history[NUM_CELLS];
-    Board current_board = board;
+    Board *game_history[NUM_CELLS];
+    Board *current_board = NodeMap_get_or_create(nodecache, board).board;
 
     game_history[0] = current_board;
     outcome = evaluate_outcome(config, current_board);
@@ -75,8 +76,8 @@ void playout(GameConfig *config, NodeMap *nodecache, Board board)
         else
         {
             Board next_board = play_move(current_board, (uint8_t)move);
-            game_history[game_size++] = next_board;
-            current_board = next_board;
+            current_board = NodeMap_get_or_create(nodecache, next_board).board;
+            game_history[game_size++] = current_board;
             outcome = evaluate_outcome(config, current_board);
         }
         game_over = outcome.player_lost || outcome.player_won || outcome.draw;
@@ -88,7 +89,7 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
 {
     float max_value = 0.0f;
     int best_move = -1;
-    Moves moves = get_valid_moves(config, board);
+    Moves moves = get_valid_moves(config, &board);
     if (moves.size == 0)
     {
         printf("choose_move: no valid moves found\n");
@@ -96,8 +97,8 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
     }
     for (size_t i = 0; i < moves.size; i++)
     {
-        Board child_board = play_move(board, moves.moves[i]);
-        Node *child_node = NodeMap_get_or_create(nodecache, child_board);
+        Board child_board = play_move(&board, moves.moves[i]);
+        Node *child_node = NodeMap_get_or_create(nodecache, child_board).node;
         float value = Node_value(child_node);
         if (value > max_value)
         {
