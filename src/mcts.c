@@ -7,12 +7,11 @@ float calculate_value(NodeMap *nodecache, Board *parent_board, Board board)
     if (node->visits == 0)
         return INFINITY;
     uint32_t parent_visits = num_parent_visits(nodecache, node);
-    // TODO: Not sure why this sometimes happens
-    //    if (node->visits > parent_visits)
-    //    {
-    //        printf("calculate_value: parent visits should be higher than node visits\n");
-    //        exit(1);
-    //    }
+    if (node->visits > parent_visits)
+    {
+        printf("calculate_value: parent visits should be higher than node visits\n");
+        exit(1);
+    }
     float exploration_term = sqrtf(2.0f) * sqrtf(logf((float)parent_visits) / (float)node->visits);
     return Node_value(node) + exploration_term;
 }
