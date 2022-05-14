@@ -203,8 +203,8 @@ static void add_move(Moves *moves, uint8_t cell_idx)
     moves->moves[moves->size++] = cell_idx;
 }
 
-static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t *player_cells, Moves *moves,
-                               uint8_t cell_idx)
+static void add_neighbor_cells(const GameConfig *config, const uint8_t *ai_cells, const uint8_t *player_cells,
+                               Moves *moves, uint8_t cell_idx)
 {
     uint8_t connections = config->cell_connections[cell_idx];
     for (uint8_t j = 0; j < 8; j++)

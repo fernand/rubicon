@@ -12,7 +12,7 @@ float Node_value(Node *node)
 {
     if (node->visits == 0)
         return 0.0f;
-    return (float)node->wins / node->visits;
+    return (float)node->wins / (float)node->visits;
 }
 
 void Node_add_parent(Node *node, Board *board)
@@ -129,7 +129,7 @@ uint32_t board_hash(Board *board)
         for (uint8_t f_idx = 0; f_idx < 4; f_idx++)
         {
             uint8_t *bytes = (uint8_t *)&board->field[p_idx][f_idx];
-            for (uint8_t b_idx = 0; b_idx < sizeof(uint64_t); b_idx++)
+            for (uint64_t b_idx = 0; b_idx < sizeof(uint64_t); b_idx++)
                 hash = fnv1a(bytes[b_idx], hash);
         }
     }
