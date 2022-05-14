@@ -104,7 +104,7 @@ Node *NodeAllocator_create_node(NodeAllocator *allocator)
 
 NodeMap NodeMap_init()
 {
-    size_t capacity = 1 << 24;
+    size_t capacity = 1 << 25;
     printf("Size of NodeMap: %f MB\n", (float)capacity * sizeof(NodeMapEntry) / 1e6);
     NodeMapEntry *entries = calloc(capacity, sizeof(NodeMapEntry));
     if (entries == NULL)

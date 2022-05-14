@@ -57,9 +57,8 @@ uint64_t count_occupied_cells(const uint64_t *field)
     return num_occupied_cells;
 }
 
-uint8_t occupied_cells(const uint64_t *field, uint8_t *cells)
+void get_occupied_cells(const uint64_t *field, uint8_t *cells)
 {
-    uint8_t cells_size = 0;
     for (uint8_t f_idx = 0; f_idx < 4; f_idx++)
     {
         uint8_t max_idx = f_idx < 3 ? 64 : PLAYER_IDX;
@@ -67,10 +66,9 @@ uint8_t occupied_cells(const uint64_t *field, uint8_t *cells)
         {
             uint8_t cell_idx = f_idx * 64 + i;
             if (cell_occupied(field, cell_idx))
-                cells[cells_size++] = cell_idx;
+                cells[cell_idx] = 1;
         }
     }
-    return cells_size;
 }
 
 static inline void set_player_to_play(uint64_t *field, uint8_t player_to_play)
@@ -173,16 +171,6 @@ uint8_t neighbor(uint8_t cell_idx, uint8_t neighbor)
     }
 }
 
-bool cells_isin(const uint8_t *cells, size_t cells_size, uint8_t cell_idx)
-{
-    for (size_t i = 0; i < cells_size; i++)
-    {
-        if (cells[i] == cell_idx)
-            return true;
-    }
-    return false;
-}
-
 bool board_cmp(Board *b1, Board *b2)
 {
     bool equal = true;
@@ -215,8 +203,8 @@ static void add_move(Moves *moves, uint8_t cell_idx)
     moves->moves[moves->size++] = cell_idx;
 }
 
-static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t ai_cells_size, uint8_t *player_cells,
-                               uint8_t player_cells_size, Moves *moves, uint8_t cell_idx)
+static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t *player_cells, Moves *moves,
+                               uint8_t cell_idx)
 {
     uint8_t connections = config->cell_connections[cell_idx];
     for (uint8_t j = 0; j < 8; j++)
@@ -224,8 +212,7 @@ static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t ai
         if (IS_CONNECTION(connections, j))
         {
             uint8_t neighbor_idx = neighbor(cell_idx, j);
-            if (!cells_isin(ai_cells, ai_cells_size, neighbor_idx) &&
-                !cells_isin(player_cells, player_cells_size, neighbor_idx))
+            if (ai_cells[neighbor_idx] == 0 && player_cells[neighbor_idx] == 0)
                 add_move(moves, neighbor_idx);
         }
     }
@@ -234,49 +221,44 @@ static void add_neighbor_cells(GameConfig *config, uint8_t *ai_cells, uint8_t ai
 Moves get_valid_moves(GameConfig *config, Board *board)
 {
     Moves moves = {0};
-    uint8_t ai_cells[NUM_CELLS / 2];
-    uint8_t ai_cells_size = occupied_cells(board->field[0], ai_cells);
-    uint8_t player_cells[NUM_CELLS / 2];
-    uint8_t player_cells_size = occupied_cells(board->field[1], player_cells);
+    uint8_t ai_cells[NUM_CANDITATE_CELLS] = {0};
+    get_occupied_cells(board->field[0], ai_cells);
+    uint8_t player_cells[NUM_CANDITATE_CELLS] = {0};
+    get_occupied_cells(board->field[1], player_cells);
     if (round_to_play(board->field[0]) == 1)
     {
         // Any free cell on the board can be played
         for (size_t i = 0; i < NUM_CELLS; i++)
         {
             uint8_t cell_idx = config->all_cells[i];
-            if (!cells_isin(ai_cells, ai_cells_size, cell_idx) &&
-                !cells_isin(player_cells, player_cells_size, cell_idx) && cell_idx != TOP_GOLD && cell_idx != BTM_GOLD)
+            if (ai_cells[cell_idx] == 0 && player_cells[cell_idx] == 0 && cell_idx != TOP_GOLD && cell_idx != BTM_GOLD)
                 add_move(&moves, cell_idx);
         }
     }
     else
     {
         // For rounds 2+, gold cell neighbors can also be played
-        add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, TOP_GOLD);
-        add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, BTM_GOLD);
+        add_neighbor_cells(config, ai_cells, player_cells, &moves, TOP_GOLD);
+        add_neighbor_cells(config, ai_cells, player_cells, &moves, BTM_GOLD);
         uint8_t player_idx = player_to_play(board->field[0]);
         uint8_t *cells;
-        uint8_t cells_size;
         if (player_idx == 0)
-        {
             cells = ai_cells;
-            cells_size = ai_cells_size;
-        }
         else
-        {
             cells = player_cells;
-            cells_size = player_cells_size;
+        for (uint8_t i = 0; i < NUM_CANDITATE_CELLS; i++)
+        {
+            if (cells[i] == 1)
+                add_neighbor_cells(config, ai_cells, player_cells, &moves, i);
         }
-        for (uint8_t i = 0; i < cells_size; i++)
-            add_neighbor_cells(config, ai_cells, ai_cells_size, player_cells, player_cells_size, &moves, cells[i]);
     }
     return moves;
 }
 
 bool won(GameConfig *config, uint64_t *field)
 {
-    uint8_t cells[NUM_CELLS];
-    uint8_t cells_size = occupied_cells(field, cells);
+    uint8_t occupied_cells[NUM_CANDITATE_CELLS] = {0};
+    get_occupied_cells(field, occupied_cells);
     uint8_t stack[NUM_CELLS];
     stack[0] = config->all_cells[TOP_GOLD];
     uint8_t stack_size = 1;
@@ -295,7 +277,7 @@ bool won(GameConfig *config, uint64_t *field)
                 uint8_t neighbor_idx = neighbor(cell_idx, j);
                 if (neighbor_idx == BTM_GOLD)
                     return true;
-                else if (cells_isin(cells, cells_size, neighbor_idx))
+                else if (occupied_cells[neighbor_idx] == 1)
                 {
                     bool already_visited = false;
                     for (uint8_t i = 0; i < visited_size; i++)
