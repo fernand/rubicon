@@ -107,10 +107,17 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
     }
     uint8_t depth = best_move == -1 ? 0 : depth_for_cell[(uint8_t)best_move];
     uint8_t num_cells_before_depth = 0;
-    for (uint8_t i = 0; i < depth - 1; i++)
+    for (uint8_t i = 0; i < depth; i++)
         num_cells_before_depth += virt_cells_for_depth[i];
-    uint8_t depth_offset = best_move - num_cells_before_depth;
-    printf("Best move: %i, depth_offset:%u depth:%u, value:%f\n", best_move, depth_offset, depth, max_value);
+    uint8_t depth_cell_idx = best_move - num_cells_before_depth + 1;
+    printf("Best move: depth:%u depth_cell_idx:%u value:%f cell_idx:%u\n", depth, depth_cell_idx, max_value, best_move);
+    //    Board good_board = {0};
+    //    set_round_to_play(good_board.field[0], 2);
+    //    set_player_to_play(good_board.field[0], 0);
+    //    occupy_cell(good_board.field[0], 131);
+    //    occupy_cell(good_board.field[1], 151);
+    //    Node *good_node = NodeMap_get_or_create(nodecache, good_board).node;
+    //    printf("Good node value:%f\n", Node_value(good_node));
     return best_move;
 }
 

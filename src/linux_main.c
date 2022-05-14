@@ -28,25 +28,24 @@ int main()
     set_round_to_play(main_board.field[0], 1);
     set_player_to_play(main_board.field[0], 1);
     occupy_cell(main_board.field[0], 131);
-    size_t num_playouts = 2000;
+    size_t num_playouts = 3000;
 
     clock_gettime(CLOCK_MONOTONIC, &t1);
     playouts(&config, &nodecache, num_playouts, main_board);
     clock_gettime(CLOCK_MONOTONIC, &t2);
     float avg_playout_time = (float)clock_diff_us(t1, t2) / (float)num_playouts;
     printf("Average playout time: %f\n", avg_playout_time);
-    //
-    //    for (;;)
-    //    {
-    //        screenshot(sc_info, buffer);
-    //        update_player_cells(&main_board, buffer, y_stride);
-    //        clock_gettime(CLOCK_MONOTONIC, &t1);
-    //        playouts(&config, &boardcache, &nodecache, num_playouts, main_board);
-    //        clock_gettime(CLOCK_MONOTONIC, &t2);
-    //        float avg_playout_time = (float)clock_diff_us(t1, t2) / num_playouts;
-    //        printf("Average playout time: %f\n", avg_playout_time);
-    //        NodeMap_reset(&nodecache);
-    //        sleep_ms(1000);
-    //    }
-    //    NodeMap_destroy(&nodecache);
+
+    for (;;)
+    {
+        screenshot(sc_info, buffer);
+        update_player_cells(&main_board, buffer, y_stride);
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+        playouts(&config, &nodecache, num_playouts, main_board);
+        clock_gettime(CLOCK_MONOTONIC, &t2);
+        float avg_playout_time = (float)clock_diff_us(t1, t2) / num_playouts;
+        printf("Average playout time: %f\n", avg_playout_time);
+        NodeMap_reset(&nodecache);
+    }
+    NodeMap_destroy(&nodecache);
 }

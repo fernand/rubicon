@@ -32,7 +32,7 @@ void Node_add_parent(Node *node, Board *board)
 
 BoardAllocator BoardAllocator_Init()
 {
-    size_t num_boards = (size_t)(1.0f * (1 << 24));
+    size_t num_boards = (size_t)(1.5f * (float)(1 << 25));
     printf("Size of BoardAllocator: %f MB\n", (float)num_boards * sizeof(Board) / 1e6);
     Board *boards = calloc(num_boards, sizeof(Board));
     if (boards == NULL)
@@ -68,7 +68,7 @@ Board *BoardAllocator_create_board(BoardAllocator *allocator)
 
 NodeAllocator NodeAllocator_Init()
 {
-    size_t num_nodes = (size_t)(1.0f * (float)(1 << 24));
+    size_t num_nodes = (size_t)(1.5f * (float)(1 << 25));
     printf("Size of NodeAllocator: %f MB\n", (float)num_nodes * sizeof(Node) / 1e6);
     Node *nodes = calloc(num_nodes, sizeof(Node));
     if (nodes == NULL)
@@ -104,7 +104,7 @@ Node *NodeAllocator_create_node(NodeAllocator *allocator)
 
 NodeMap NodeMap_init()
 {
-    size_t capacity = 1 << 25;
+    size_t capacity = 1 << 26;
     printf("Size of NodeMap: %f MB\n", (float)capacity * sizeof(NodeMapEntry) / 1e6);
     NodeMapEntry *entries = calloc(capacity, sizeof(NodeMapEntry));
     if (entries == NULL)
