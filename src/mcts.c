@@ -1,17 +1,12 @@
 #include "node.h"
 
-float calculate_value(NodeMap *nodecache, Board *parent_board, Board board)
+float calculate_value(NodeMap *nodecache, Board *parent_board, NodeMapEntry entry)
 {
-    Node *node = NodeMap_get_or_create(nodecache, board).node;
+    Node *node = entry.node;
     Node_add_parent(node, parent_board);
     if (node->visits == 0)
         return INFINITY;
-    uint32_t parent_visits = num_parent_visits(nodecache, node);
-    if (node->visits > parent_visits)
-    {
-        printf("calculate_value: parent visits should be higher than node visits\n");
-        exit(1);
-    }
+    uint32_t parent_visits = NodeMap_get_or_create(nodecache, *parent_board).node->visits;
     float exploration_term = sqrtf(2.0f) * sqrtf(logf((float)parent_visits) / (float)node->visits);
     return Node_value(node) + exploration_term;
 }
@@ -30,8 +25,8 @@ int choose_move(GameConfig *config, NodeMap *nodecache, Board *board)
     for (int i = 0; i < moves.size; i++)
     {
         Board child_board = play_move(board, (uint8_t)moves.moves[i]);
-        Board *managed_child_board = NodeMap_get_or_create(nodecache, child_board).board;
-        float value = calculate_value(nodecache, board, *managed_child_board);
+        NodeMapEntry entry = NodeMap_get_or_create(nodecache, child_board);
+        float value = calculate_value(nodecache, board, entry);
         if (value > max_value)
         {
             max_value = value;
@@ -89,6 +84,7 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
     float max_value = 0.0f;
     int best_move = -1;
     Moves moves = get_valid_moves(config, &board);
+    Node *best_node;
     if (moves.size == 0)
     {
         printf("choose_move: no valid moves found\n");
@@ -103,6 +99,7 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
         {
             max_value = value;
             best_move = moves.moves[i];
+            best_node = child_node;
         }
     }
     uint8_t depth = best_move == -1 ? 0 : depth_for_cell[(uint8_t)best_move];
@@ -111,13 +108,17 @@ int mcts_move(GameConfig *config, NodeMap *nodecache, Board board)
         num_cells_before_depth += virt_cells_for_depth[i];
     uint8_t depth_cell_idx = best_move - num_cells_before_depth + 1;
     printf("Best move: depth:%u depth_cell_idx:%u value:%f cell_idx:%u\n", depth, depth_cell_idx, max_value, best_move);
-    //    Board good_board = {0};
-    //    set_round_to_play(good_board.field[0], 2);
-    //    set_player_to_play(good_board.field[0], 0);
-    //    occupy_cell(good_board.field[0], 131);
-    //    occupy_cell(good_board.field[1], 151);
-    //    Node *good_node = NodeMap_get_or_create(nodecache, good_board).node;
-    //    printf("Good node value:%f\n", Node_value(good_node));
+    Board good_board = {0};
+    set_round_to_play(good_board.field[0], 2);
+    set_player_to_play(good_board.field[0], 0);
+    occupy_cell(good_board.field[0], 131);
+    occupy_cell(good_board.field[1], 151);
+    Node *good_node = NodeMap_get_or_create(nodecache, good_board).node;
+    printf("Good node value:%f\n", Node_value(good_node));
+    printf("Good node visits:%u\n", good_node->visits);
+    printf("Good node draws:%u\n", good_node->draws);
+    printf("Good node losses:%u\n", good_node->losses);
+    printf("Best node visits:%u\n", best_node->visits);
     return best_move;
 }
 
