@@ -1,38 +1,22 @@
-#pragma once
-
-#include <time.h>
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-typedef struct ScreenshotInfo
+struct ScreenshotInfo
 {
     Display *display;
     Window root;
     int width;
     int height;
-} ScreenshotInfo;
-
-long clock_diff_us(struct timespec t1, struct timespec t2)
-{
-    return (t2.tv_sec - t1.tv_sec) * 1000000 + (t2.tv_nsec - t2.tv_nsec) / 1000;
-}
-
-void sleep_ms(long ms)
-{
-    struct timespec ts;
-    ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000;
-    nanosleep(&ts, NULL);
-}
+};
 
 ScreenshotInfo get_screenshot_info()
 {
-    Display *display = XOpenDisplay(NULL);
+    Display *display = XOpenDisplay(nullptr);
     Window root = DefaultRootWindow(display);
     XWindowAttributes gwa;
     XGetWindowAttributes(display, root, &gwa);
-    return (ScreenshotInfo){.display = display, .root = root, .width = gwa.width, .height = gwa.height};
+    return ScreenshotInfo{.display = display, .root = root, .width = gwa.width, .height = gwa.height};
 }
 
 void screenshot(ScreenshotInfo info, uint8_t *buffer)
